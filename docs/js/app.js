@@ -45,7 +45,10 @@ const view = { tab: 'quests', date: null, logSub: 'calendar', month: null, selDa
 let undoStack = [];
 
 // ---------- toasts / modals ----------
+// Toasts wait while a pop-up is open so they never cover it (phones have no room for both).
+const heldToasts = [];
 function toast(msg, kind = '', label = 'System', undo = false) {
+  if ($('modalroot').firstChild) { heldToasts.push([msg, kind, label, undo]); return; }
   const el = document.createElement('div');
   el.className = 'toast ' + kind;
   el.innerHTML = `${undo ? '<button class="undo">UNDO</button>' : ''}<span class="sys-label">[ ${esc(label)} ]</span>${msg}`;
@@ -69,7 +72,10 @@ function sheet(label, body, cls = 'left') {
   m.querySelector('.x').onclick = closeModal;
   return m;
 }
-function closeModal() { $('modalroot').innerHTML = ''; onModalClose && onModalClose(); onModalClose = null; }
+function closeModal() {
+  $('modalroot').innerHTML = ''; onModalClose && onModalClose(); onModalClose = null;
+  heldToasts.splice(0).forEach((t, i) => setTimeout(() => toast(...t), 250 + i * 350));
+}
 let onModalClose = null;
 
 // ---------- undo ----------

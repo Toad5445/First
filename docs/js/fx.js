@@ -114,4 +114,21 @@ function next() {
   const close = () => { el.remove(); next(); };
   el.onclick = close;
   document.body.appendChild(el);
+  const h = el.querySelector('.huge');
+  h.innerHTML = h.innerHTML.split(/(<[^>]*>|\s+)/).map(t => t && !/^</.test(t) && !/^\s+$/.test(t) ? `<span class="w" style="display:inline-block">${t}</span>` : t).join('');
+  const fit = () => fitHuge(h);
+  fit();
+  // theme fonts can finish loading after the scene opens and make words wider
+  if (document.fonts) { document.fonts.ready.then(fit); document.fonts.addEventListener('loadingdone', fit); }
+  [150, 500, 1200].forEach(ms => setTimeout(fit, ms));
+  el.addEventListener('click', () => document.fonts && document.fonts.removeEventListener('loadingdone', fit), { once: true });
+}
+
+// Shrink the headline until its longest word fits on one line (fonts differ a lot in width per theme).
+function fitHuge(h) {
+  if (!h || !h.isConnected) return;
+  h.style.fontSize = '';
+  const avail = Math.min(h.closest('.scene').clientWidth - 40, 560);
+  const widest = Math.max(...[...h.querySelectorAll('span.w')].map(sp => sp.getBoundingClientRect().width));
+  if (widest > avail) h.style.fontSize = Math.floor(parseFloat(getComputedStyle(h).fontSize) * avail / widest * 0.97) + 'px';
 }
