@@ -342,10 +342,15 @@ export function topClass(stats) {
 }
 export const topStats = stats => STAT_KEYS.slice().sort((a, b) => stats[b] - stats[a] || STAT_KEYS.indexOf(a) - STAT_KEYS.indexOf(b));
 
-// Job choices: pairs drawn from your top 3 stats.
+// Job choices: pairs drawn from your top 3 stats. Stats tied with 3rd place all count, so a tie never
+// hides a job (two stats tied for 3rd gives the pairs for both).
 export function jobOptions(stats) {
-  const [a, b, c] = topStats(stats);
-  return [jobKey(a, b), jobKey(a, c), jobKey(b, c)];
+  const order = topStats(stats);
+  const cut = stats[order[Math.min(2, order.length - 1)]];
+  const cand = order.filter(k => stats[k] >= cut);
+  const out = [];
+  for (let i = 0; i < cand.length; i++) for (let j = i + 1; j < cand.length; j++) out.push(jobKey(cand[i], cand[j]));
+  return out;
 }
 // One job change per 10 levels reached.
 export const jobTokens = (S, L) => Math.max(0, Math.floor(L / 10) - S.jobs.length);

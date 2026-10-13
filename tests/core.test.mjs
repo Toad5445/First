@@ -91,3 +91,9 @@ test('job names are not offered as titles', () => {
   assert.ok(!titles.includes('Necromancer') && !titles.includes('Lich') && !titles.includes('Grave Monarch'));
   assert.ok(titles.includes('Wanderer'));
 });
+
+test('a tie for 3rd place offers jobs for every tied stat', () => {
+  const opts = C.jobOptions({ STR: 40, VIT: 60, WIS: 40, CHA: 55, WIL: 30, INT: 30 });
+  for (const k of ['VIT+CHA', 'VIT+WIS', 'STR+VIT', 'WIS+CHA', 'STR+CHA']) assert.ok(opts.includes(k), k);
+  assert.deepEqual(C.jobOptions({ STR: 10, VIT: 60, WIS: 40, CHA: 55, WIL: 30, INT: 30 }).sort(), ['VIT+CHA', 'VIT+WIS', 'WIS+CHA'].sort());
+});
