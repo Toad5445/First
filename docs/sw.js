@@ -1,5 +1,5 @@
 // Offline support. Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'v3.0.3';
+const VERSION = 'v3.0.4';
 const SHELL = ['./', 'index.html', 'app.css', 'manifest.webmanifest', 'js/app.js', 'js/core.js', 'js/data.js', 'js/sync.js',
   'js/fx.js', 'js/charts.js', 'js/card.js', 'vendor/firebase.js', 'icons/icon-192-v2.png', 'icons/apple-touch-icon-v2.png'];
 

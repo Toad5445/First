@@ -75,21 +75,21 @@ export const RANKS = [[1, 'F'], [5, 'E'], [10, 'D'], [20, 'C'], [27, 'B'], [40, 
 // Jobs: chosen from your top stats at every 10th level. Tier rises at Lv25 and Lv50.
 export const JOB_TIERS = [[10, 0.05], [25, 0.08], [50, 0.12]];   // [level, XP bonus on the job's two stats]
 export const JOBS = {
-  'STR+VIT': ['Juggernaut', 'Titan', 'Colossus', 'An immovable wall of muscle and stamina.'],
-  'STR+WIS': ['Ki Fighter', 'Ki Master', 'Ki Sovereign', 'Strength guided by a quiet mind.'],
-  'STR+CHA': ['Gladiator', 'Champion', 'Arena Legend', 'Power that wants an audience.'],
-  'STR+WIL': ['Berserker', 'Ravager', 'Berserk King', 'Pain is just information.'],
-  'STR+INT': ['Spellblade', 'Rune Knight', 'Sword Saint', 'Body and mind sharpened together.'],
-  'VIT+WIS': ['Druid', 'Archdruid', 'World-Tree Warden', 'In tune with rest, rhythm, and recovery.'],
-  'VIT+CHA': ['Cleric', 'Priest', 'Saint', 'Your energy lifts the people around you.'],
-  'VIT+WIL': ['Templar', 'Paladin', 'Divine Bulwark', 'Discipline that protects the body.'],
-  'VIT+INT': ['Alchemist', 'Master Alchemist', 'Philosopher', 'Optimizes the body like an experiment.'],
-  'WIS+CHA': ['Oracle', 'Seer', 'Prophet', 'Reads the room and the self.'],
-  'WIS+WIL': ['Hermit', 'Ascetic Sage', 'Enlightened One', 'Stillness as a weapon.'],
-  'WIS+INT': ['Mage', 'Archmage', 'Grand Magus', 'Knowledge, held calmly.'],
-  'CHA+WIL': ['Commander', 'General', 'Conqueror', 'Leads by doing the hard thing first.'],
-  'CHA+INT': ['Enchanter', 'Illusionist', 'Archenchanter', 'Ideas made compelling.'],
-  'WIL+INT': ['Strategist', 'Grand Strategist', 'Mastermind', 'Plans the work, then works the plan.']
+  'STR+VIT': ['Death Knight', 'Dreadnought', 'Warbringer', 'Armor that never breaks, a body that never stops.'],
+  'STR+WIS': ['Shadow Fist', 'Void Monk', 'Godslayer', 'Strikes from a perfectly still mind.'],
+  'STR+CHA': ['Executioner', 'Blood Champion', 'Tyrant', 'Power that wants an audience, and gets one.'],
+  'STR+WIL': ['Berserker', 'Reaver', 'Calamity', 'Pain is just information.'],
+  'STR+INT': ['Hexblade', 'Runeslayer', 'Void Saint', 'A cursed blade guided by a cold mind.'],
+  'VIT+WIS': ['Necromancer', 'Lich', 'Death Sovereign', 'Commands the body\'s decay through ritual and discipline.'],
+  'VIT+CHA': ['Vampire', 'Nosferatu', 'Progenitor', 'Undying energy and a presence people can\'t look away from.'],
+  'VIT+WIL': ['Inquisitor', 'Dread Templar', 'Hierophant', 'Discipline enforced on the flesh.'],
+  'VIT+INT': ['Plague Doctor', 'Plaguebringer', 'Pestilence', 'Treats the body like an experiment.'],
+  'WIS+CHA': ['Phantom', 'Specter', 'Nightmare Lord', 'Calm, unseen, and somehow everywhere at once.'],
+  'WIS+WIL': ['Shade', 'Umbral Knight', 'Shadow Monarch', 'Stillness as a weapon. The shadows answer.'],
+  'WIS+INT': ['Occultist', 'Grimoire Keeper', 'Void Sage', 'Forbidden knowledge, held calmly.'],
+  'CHA+WIL': ['Warlord', 'Overlord', 'Dark Emperor', 'Leads by doing the hard thing first.'],
+  'CHA+INT': ['Puppeteer', 'Mind Flayer', 'Fate Weaver', 'Reads people and pulls the strings.'],
+  'WIL+INT': ['Assassin', 'Nightblade', 'Angel of Death', 'Patient, precise, never seen coming.']
 };
 
 export const BUFFS = {
