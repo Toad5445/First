@@ -521,10 +521,10 @@ function renderStatus() {
     jobHtml = `<div class="jobcard"><div class="sys-label">[ Job change available ]</div>
       <p class="note">Pick a job based on your strongest stats. It gives <b>+${JOB_TIERS[Math.max(0, tier - 1)][1] * 100}% XP</b> on quests of its two stats and evolves at level 25 and 50. You can change jobs again every 10 levels.</p>
       <div class="jobopts">${opts.map(k => `<button class="jobopt" data-job="${k}"><div class="jn">${esc(JOBS[k][0])} <span class="mono" style="font-size:13px;color:var(--dim)">${k.replace('+', ' / ')}</span></div><div class="jd">${esc(JOBS[k][3])} Evolves into ${esc(JOBS[k][1])}, then ${esc(JOBS[k][2])}.</div></button>`).join('')}</div></div>`;
-  } else if (j && j.date === R.today) {
+  } else if (j && j.date >= addDays(R.today, -3)) {
     const opts = C.jobOptions(R.stats);
     jobHtml = `<div class="jobcard"><div class="sys-label">[ Job: ${esc(C.jobName(j.key, tier))} ]</div>
-      <p class="note">Changed your mind? You picked this today, so you can switch for free or undo it until the day resets.</p>
+      <p class="note">Changed your mind? For 3 days after picking a job you can switch for free or undo it.</p>
       <div class="jobopts">${opts.map(k => `<button class="jobopt" data-job="${k}" ${k === j.key ? 'disabled style="opacity:.55;cursor:default"' : ''}><div class="jn">${esc(JOBS[k][0])} <span class="mono" style="font-size:13px;color:var(--dim)">${k.replace('+', ' / ')}${k === j.key ? ' · current' : ''}</span></div><div class="jd">${esc(JOBS[k][3])}</div></button>`).join('')}</div>
       <button class="btn sm danger" id="job-undo" style="margin-top:12px">Undo job choice</button></div>`;
   } else if (j) {
@@ -569,11 +569,12 @@ function renderStatus() {
 }
 function chooseJob(key) {
   const last = S.jobs[S.jobs.length - 1];
-  const swap = last && last.date === today();
-  if (!confirm(`${swap ? 'Switch to' : 'Become'} ${JOBS[key][0]}? You can still change it until the day resets.`)) return;
+  const swap = last && last.date >= addDays(today(), -3);
+  if (!confirm(`${swap ? 'Switch to' : 'Become'} ${JOBS[key][0]}? You can still change it for 3 days.`)) return;
   snapshot();
+  const date = swap ? last.date : today();
   if (swap) S.jobs.pop();
-  S.jobs.push({ date: today(), key });
+  S.jobs.push({ date, key });
   save();
   scene('Class Change', esc(JOBS[key][0]).toUpperCase(), esc(JOBS[key][3]), `+${JOB_TIERS[0][1] * 100}% XP on ${key.replace('+', ' and ')} quests`, 'skill');
   render();

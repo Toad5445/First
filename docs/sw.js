@@ -1,10 +1,11 @@
 // Offline support. Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'v3.0.1';
+const VERSION = 'v3.0.2';
 const SHELL = ['./', 'index.html', 'app.css', 'manifest.webmanifest', 'js/app.js', 'js/core.js', 'js/data.js', 'js/sync.js',
   'js/fx.js', 'js/charts.js', 'js/card.js', 'vendor/firebase.js', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open('shell-' + VERSION).then(c => c.addAll(SHELL)));
+  // cache: 'reload' skips the browser's HTTP cache so an update never stores stale files
+  e.waitUntil(caches.open('shell-' + VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('shell-') && k !== 'shell-' + VERSION).map(k => caches.delete(k))))
