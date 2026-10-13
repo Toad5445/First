@@ -607,10 +607,12 @@ function renderStatus() {
       <p class="note">Pick a job based on your strongest stats. It gives <b>+${JOB_TIERS[Math.max(0, tier - 1)][1] * 100}% XP</b> on quests of its two stats and evolves at level 25 and 50. You can change jobs again every 10 levels.</p>
       <div class="jobopts">${opts.map(k => `<button class="jobopt" data-job="${k}"><div class="jn">${esc(JOBS[k][0])} <span class="mono" style="font-size:13px;color:var(--dim)">${k.replace('+', ' / ')}</span></div><div class="jd">${esc(JOBS[k][3])} Evolves into ${esc(JOBS[k][1])}, then ${esc(JOBS[k][2])}.</div></button>`).join('')}</div></div>`;
   } else if (j && j.date >= addDays(R.today, -3)) {
-    const opts = C.jobOptions(R.stats);
+    // free switch window: current job first, then the jobs your top stats offer now
+    const opts = [j.key, ...C.jobOptions(R.stats).filter(k => k !== j.key)];
+    const left = 3 - Math.round((parse(R.today) - parse(j.date)) / 86400000);
     jobHtml = `<div class="jobcard"><div class="sys-label">[ Job: ${esc(C.jobName(j.key, tier))} ]</div>
-      <p class="note">Changed your mind? For 3 days after picking a job you can switch for free or undo it.</p>
-      <div class="jobopts">${opts.map(k => `<button class="jobopt" data-job="${k}" ${k === j.key ? 'disabled style="opacity:.55;cursor:default"' : ''}><div class="jn">${esc(JOBS[k][0])} <span class="mono" style="font-size:13px;color:var(--dim)">${k.replace('+', ' / ')}${k === j.key ? ' · current' : ''}</span></div><div class="jd">${esc(JOBS[k][3])}</div></button>`).join('')}</div>
+      <p class="note">Free switch window: <b>${left <= 0 ? 'last day' : `${left} day${left === 1 ? '' : 's'} left`}</b>. You can swap to another job or undo your pick until then. The other options come from your current top stats.</p>
+      <div class="jobopts">${opts.map(k => `<button class="jobopt" data-job="${k}" ${k === j.key ? 'disabled style="cursor:default;border-color:var(--a)"' : ''}><div class="jn">${esc(JOBS[k][0])} <span class="mono" style="font-size:13px;color:var(--dim)">${k.replace('+', ' / ')}${k === j.key ? ' · current' : ''}</span></div><div class="jd">${esc(JOBS[k][3])}</div></button>`).join('')}</div>
       <button class="btn sm danger" id="job-undo" style="margin-top:12px">Undo job choice</button></div>`;
   } else if (j) {
     jobHtml = `<div class="jobcard"><div class="sys-label">[ Job ]</div><h3 style="margin:8px 0 4px">${esc(C.jobName(j.key, tier))}</h3>
