@@ -622,7 +622,7 @@ function renderStatus() {
 
   $('pane-status').innerHTML = `<div class="win"><h2>Status</h2>
     <div class="statusgrid">
-      <div class="radar">${radar(R.stats)}<div style="text-align:center;margin-top:10px"><button class="btn sm" id="card-btn">Save status card</button></div></div>
+      <div class="radar">${radar(R.stats)}<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px"><button class="btn sm" id="tree-btn">Job tree</button><button class="btn sm" id="card-btn">Save status card</button></div></div>
       <div>
         <div class="kv"><span>Level</span><b>${L} <span class="mono" style="font-size:12px;color:var(--dim)">(${C.rankFor(L)}-Rank)</span></b></div>
         <div class="kv"><span>Total XP</span><b class="mono">${R.xp.toLocaleString()}</b></div>
@@ -643,6 +643,7 @@ function renderStatus() {
     <div class="note" style="margin-top:10px">Perks, buffs and jobs apply from ${esc(C.prettyDate(S.v3Since))} on. Everything you earned before that stays exactly as it was.</div>
   </div>`;
   $('title-sel').onchange = e => { S.titleSel = e.target.value; save(); render(); };
+  $('tree-btn').onclick = () => openJobTree();
   $('card-btn').onclick = async () => {
     const quests = Object.values(S.days).reduce((a, r) => a + Object.keys(r.log || {}).length, 0);
     const r = await statusCard({ name: S.name, rank: C.rankFor(L), level: L, streak: R.streak, best: R.best, pct: li.rem / li.need, cls: displayClass(), title: displayTitle(), stats: R.stats, quests });
@@ -654,6 +655,65 @@ function renderStatus() {
     snapshot(); S.jobs.pop(); save(); render(); toast('Job choice undone. Pick again whenever you\'re ready.');
   };
 }
+// ---------- job tree ----------
+// Six stats on a hexagon; every line between two stats is a job. Later forms stay hidden ("???")
+// until you've held that job, so the tree shows the paths without giving every name away.
+function openJobTree(sel) {
+  const L = C.levelInfo(R.xp).L, tier = C.jobTier(L);
+  const cur = C.activeJob(S, R.today), curKey = cur && cur.key;
+  const held = new Set(S.jobs.map(j => j.key));
+  const avail = new Set(C.jobOptions(R.stats));
+  const top = new Set(C.jobOptions(R.stats).flatMap(k => k.split('+')));
+  const W = 360, cx = W / 2, cy = W / 2, Rn = 128;
+  const pos = Object.fromEntries(STAT_KEYS.map((k, i) => { const a = -Math.PI / 2 + i * Math.PI / 3; return [k, [cx + Math.cos(a) * Rn, cy + Math.sin(a) * Rn]]; }));
+  const keys = Object.keys(JOBS);
+  const state = k => k === curKey ? 'cur' : avail.has(k) ? 'avail' : held.has(k) ? 'held' : 'off';
+  const edge = k => {
+    const [a, b] = k.split('+'), [x1, y1] = pos[a], [x2, y2] = pos[b];
+    const d = (STAT_KEYS.indexOf(b) - STAT_KEYS.indexOf(a) + 6) % 6;
+    if (d !== 3) return `M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}`;
+    // the three lines between opposite stats would all cross at the center, so bow them apart
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, nx = -(y2 - y1), ny = x2 - x1, len = Math.hypot(nx, ny);
+    return `M${x1.toFixed(1)} ${y1.toFixed(1)} Q${(mx + nx / len * 46).toFixed(1)} ${(my + ny / len * 46).toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+  };
+  const order = { off: 0, held: 1, avail: 2, cur: 3 };
+  const lines = keys.slice().sort((a, b) => order[state(a)] - order[state(b)]).map(k =>
+    `<g class="jt-e ${state(k)} ${k === sel ? 'sel' : ''}" data-tree="${k}"><path class="hit" d="${edge(k)}"/><path class="ln" d="${edge(k)}"/></g>`).join('');
+  const nodes = STAT_KEYS.map(k => { const [x, y] = pos[k], lx = x + (x - cx) * 0.3, ly = y + (y - cy) * 0.3;
+    return `<g class="jt-n ${top.has(k) ? 'top' : ''}"><circle cx="${x}" cy="${y}" r="21" style="stroke:var(--${k})"/>
+      <text x="${x}" y="${y + 4}" text-anchor="middle" style="fill:var(--${k})">${k}</text>
+      <text class="v" x="${lx}" y="${ly + 4}" text-anchor="middle">${R.stats[k]}</text></g>`; }).join('');
+  const reveal = k => k === curKey || held.has(k);
+  const row = k => {
+    const j = JOBS[k], st = state(k), [a, b] = k.split('+');
+    const steps = [0, 1, 2].map(t => {
+      const name = t === 0 || reveal(k) ? esc(j[t]) : '???';
+      const reached = k === curKey && tier > t;
+      return `<span class="jt-step ${reached ? 'on' : ''} ${name === '???' ? 'hid' : ''}"><b>${name}</b><i>Lv ${JOB_TIERS[t][0]}</i></span>`;
+    }).join('<span class="jt-arrow">→</span>');
+    return `<div class="jt-row ${st} ${k === sel ? 'sel' : ''}" data-tree="${k}" id="jt-${k.replace('+', '-')}">
+      <div class="jt-head"><span class="mono" style="color:var(--${a})">${a}</span><span class="mono" style="color:var(--dim)">+</span><span class="mono" style="color:var(--${b})">${b}</span>
+        ${st === 'cur' ? '<span class="jt-tag">Your job</span>' : st === 'avail' ? '<span class="jt-tag av">Available</span>' : st === 'held' ? '<span class="jt-tag">Held before</span>' : ''}</div>
+      <div class="jt-path">${steps}</div>
+      <div class="jt-desc">${reveal(k) || st === 'avail' ? esc(j[3]) : `Needs ${STATS[a].name} and ${STATS[b].name} in your top 3.`}</div></div>`;
+  };
+  const group = (title, list) => list.length ? `<div class="sub">${title}</div>${list.map(row).join('')}` : '';
+  const body = `<p class="note" style="text-align:left">Every line joins two stats and is a job. You can pick from the pairs among your top 3 stats at level 10, and change every 10 levels. Each job evolves at level 25 and 50. Later forms stay hidden until you've held that job.</p>
+    <div class="jt-svg"><svg viewBox="0 0 ${W} ${W}" role="img" aria-label="Job tree">${lines}${nodes}</svg></div>
+    <div class="jt-legend"><span><i class="cur"></i>Your job</span><span><i class="avail"></i>Available now</span><span><i class="held"></i>Held before</span><span><i class="off"></i>Locked</span></div>
+    ${group('Your job', keys.filter(k => state(k) === 'cur'))}
+    ${group('Available now', keys.filter(k => state(k) === 'avail'))}
+    ${group('Held before', keys.filter(k => state(k) === 'held'))}
+    ${group('Other paths', keys.filter(k => state(k) === 'off'))}`;
+  const box = $('modalroot').querySelector('.jt');
+  if (box) box.innerHTML = body; else sheet('Job tree', `<div class="jt">${body}</div>`, 'left wide');
+  $('modalroot').querySelectorAll('[data-tree]').forEach(el => el.onclick = () => {
+    const k = el.dataset.tree;
+    openJobTree(k === sel ? undefined : k);
+    if (k !== sel) { const r = $('jt-' + k.replace('+', '-')); if (r && el.tagName !== 'DIV') r.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  });
+}
+
 function chooseJob(key) {
   const last = S.jobs[S.jobs.length - 1];
   const swap = last && last.date >= addDays(today(), -3);
