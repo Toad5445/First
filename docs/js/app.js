@@ -161,12 +161,13 @@ const scroller = () => innerScroll ? $('scroller') : (document.scrollingElement 
 function scrollToTop() { scroller().scrollTo({ top: 0, behavior: 'smooth' }); }
 if (innerScroll) {
   // Themed scroll indicator. Where the browser supports scroll-driven animations (iOS 26+), it moves the
-  // thumb itself in sync with scrolling. Otherwise a requestAnimationFrame loop does it. Either way, JS
-  // handles fading and the squish when pulling past either end, and sizes are measured only on layout changes.
-  const sc = $('scroller'), bar = $('sbar'), mover = bar.firstElementChild, vis = mover.firstElementChild;
+  // thumb itself in sync with scrolling and script only handles fading and the squish past either end,
+  // from scroll events. Otherwise a requestAnimationFrame loop moves it. Sizes are measured on layout changes.
+  // Press and hold the thumb while it's showing to drag-scrub the page, like iOS.
+  const sc = $('scroller'), bar = $('sbar'), mover = bar.firstElementChild, vis = mover.firstElementChild, grab = mover.lastElementChild;
   const sda = !!(window.CSS && CSS.supports('animation-timeline: --a') && CSS.supports('timeline-scope: --a'));
   if (sda) document.documentElement.classList.add('sda');
-  let track = 0, ch = 0, sh = 0, h = 0, raf = 0, lastTop = NaN, idle = 0, hideT = null;
+  let track = 0, ch = 0, sh = 0, h = 0, raf = 0, lastTop = NaN, idle = 0, hideT = null, dragging = false;
   const measure = () => {
     track = bar.clientHeight; ch = sc.clientHeight; sh = sc.scrollHeight;
     h = Math.max(28, track * ch / sh * 0.8);
@@ -184,26 +185,50 @@ if (innerScroll) {
     // past an end: the thumb stays pinned there and shrinks toward that end
     if (top < 0) { vis.style.transformOrigin = 'top'; vis.style.transform = `scaleY(${Math.max(0.25, 1 + top / h).toFixed(3)})`; }
     else if (top > max) { vis.style.transformOrigin = 'bottom'; vis.style.transform = `scaleY(${Math.max(0.25, 1 - (top - max) / h).toFixed(3)})`; }
-    else if (vis.style.transform !== 'scaleY(1)' && vis.style.transform) vis.style.transform = 'scaleY(1)';   // eases back to full size
+    else if (vis.style.transform && vis.style.transform !== 'scaleY(1)') vis.style.transform = 'scaleY(1)';
     return true;
   };
+  const scheduleHide = () => { clearTimeout(hideT); hideT = setTimeout(() => { if (!dragging) bar.classList.remove('on'); }, 900); };
   const loop = () => {
     if (draw()) idle = 0; else idle++;
     if (idle < 12) raf = requestAnimationFrame(loop);
-    else { raf = 0; clearTimeout(hideT); hideT = setTimeout(() => bar.classList.remove('on'), 700); }
+    else { raf = 0; scheduleHide(); }
   };
-  const wake = () => {
+  const onScroll = () => {
     if (!track) measure();
-    clearTimeout(hideT);
     if (sh - ch > 2) bar.classList.add('on');
-    idle = 0;
+    if (sda) { draw(); scheduleHide(); return; }   // no per-frame work: the browser moves the thumb
+    clearTimeout(hideT); idle = 0;
     if (!raf) raf = requestAnimationFrame(loop);
   };
-  sc.addEventListener('scroll', wake, { passive: true });
+  sc.addEventListener('scroll', onScroll, { passive: true });
   sc.addEventListener('touchstart', measure, { passive: true });
   addEventListener('resize', measure);
   if (window.ResizeObserver) new ResizeObserver(measure).observe(sc.querySelector('.wrap'));
   measure();
+
+  // hold-and-drag scrubbing
+  let holdT = null, startY = 0, startTop = 0, pid = null;
+  const endDrag = () => {
+    clearTimeout(holdT); holdT = null;
+    if (pid != null) { try { grab.releasePointerCapture(pid); } catch (e) { /* already released */ } pid = null; }
+    if (dragging) { dragging = false; bar.classList.remove('drag'); scheduleHide(); }
+  };
+  grab.addEventListener('pointerdown', e => {
+    measure();
+    pid = e.pointerId; grab.setPointerCapture(pid);
+    startY = e.clientY; startTop = sc.scrollTop;
+    clearTimeout(hideT);
+    holdT = setTimeout(() => { dragging = true; bar.classList.add('drag'); buzz(8); }, 180);
+  });
+  grab.addEventListener('pointermove', e => {
+    if (!dragging) { if (Math.abs(e.clientY - startY) > 10) endDrag(); return; }
+    const max = sh - ch, travel = Math.max(1, track - h);
+    sc.scrollTop = Math.min(max, Math.max(0, startTop + (e.clientY - startY) * max / travel));
+    if (!sda) draw();
+  });
+  grab.addEventListener('pointerup', endDrag);
+  grab.addEventListener('pointercancel', endDrag);
 }
 
 function setTab(t) {

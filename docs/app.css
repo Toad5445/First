@@ -707,10 +707,15 @@ html.inner-scroll #scroller{position:fixed;inset:0;overflow-y:auto;overflow-x:hi
 html.inner-scroll #scroller::-webkit-scrollbar{display:none;width:0;height:0}
 html.inner-scroll #sbar{display:block;position:fixed;z-index:30;right:3px;width:3px;pointer-events:none;
   top:calc(env(safe-area-inset-top) + 6px);bottom:calc(env(safe-area-inset-bottom) + 6px);opacity:0;transition:opacity .45s}
-html.inner-scroll #sbar.on{opacity:1;transition:opacity .12s}
+html.inner-scroll #sbar.on,html.inner-scroll #sbar.drag{opacity:1;transition:opacity .12s}
+/* grab area around the thumb: only touchable while the bar is showing, like iOS */
+#sbar s{position:absolute;top:-12px;bottom:-12px;right:-6px;left:-30px;pointer-events:none;touch-action:none}
+#sbar.on s,#sbar.drag s{pointer-events:auto}
+#sbar b{transition:transform .12s cubic-bezier(.25,.8,.35,1),width .15s,margin .15s}
+#sbar.drag b{width:7px;margin-left:-4px;box-shadow:0 0 10px rgba(var(--a-rgb),.9)}
 #sbar i{position:absolute;left:0;right:0;top:0;height:var(--sb-h,40px);will-change:transform;backface-visibility:hidden}
-#sbar b{display:block;height:100%;border-radius:3px;background:var(--a);box-shadow:0 0 6px rgba(var(--a-rgb),.6);will-change:transform;
-  transition:transform .12s cubic-bezier(.25,.8,.35,1)}   /* iOS reports overscroll in steps; this eases between them */
+#sbar b{display:block;width:3px;height:100%;border-radius:4px;background:var(--a);box-shadow:0 0 6px rgba(var(--a-rgb),.6);will-change:transform}
+/* (transition on b eases the squish: iOS reports overscroll in steps) */
 /* where supported (iOS 26+, Chrome), the browser moves the thumb itself in step with scrolling */
 html.sda body{timeline-scope:--page}
 html.sda #scroller{scroll-timeline:--page block}
