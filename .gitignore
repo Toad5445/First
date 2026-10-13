@@ -1,2 +1,8 @@
 # repowise local index (rebuild with: repowise init --yes --no-prose)
 .repowise/
+node_modules/
+# personal save used for local tests; never publish it (the repo is public)
+tests/fixture-save-v2.json
+tests/fixture-baseline.json
+tests/legacy-v2.html
+shots/

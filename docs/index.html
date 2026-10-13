@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The System</title>
+<meta name="description" content="An isekai-style leveling system for your daily habits.">
+<meta name="theme-color" content="#05070f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The System">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script>
+  // apply the saved theme before first paint so there's no flash
+  try { var t = localStorage.getItem('the-system-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<link rel="stylesheet" href="app.css">
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<div id="fx" aria-hidden="true"></div>
+<div class="wrap">
+  <div class="win" id="hdr"></div>
+  <nav class="tabs" id="tabs"></nav>
+  <main>
+    <section class="pane" id="pane-quests"></section>
+    <section class="pane hidden" id="pane-status"></section>
+    <section class="pane hidden" id="pane-skills"></section>
+    <section class="pane hidden" id="pane-feats"></section>
+    <section class="pane hidden" id="pane-log"></section>
+    <section class="pane hidden" id="pane-manage"></section>
+    <section class="pane hidden" id="pane-themes"></section>
+    <section class="pane hidden" id="pane-settings"></section>
+  </main>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div id="modalroot"></div>
+<noscript><p style="padding:20px">The System needs JavaScript turned on.</p></noscript>
+</body>
+</html>
