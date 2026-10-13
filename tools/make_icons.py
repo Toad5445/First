@@ -40,8 +40,8 @@ def icon(size, pad=0.0, maskable=False):
     return img.resize((size, size), Image.LANCZOS)
 
 os.makedirs(OUT, exist_ok=True)
-icon(192).save(os.path.join(OUT, 'icon-192.png'))
-icon(512).save(os.path.join(OUT, 'icon-512.png'))
-icon(180).save(os.path.join(OUT, 'apple-touch-icon.png'))
-icon(512, maskable=True).save(os.path.join(OUT, 'icon-maskable-512.png'))
+icon(192).save(os.path.join(OUT, 'icon-192-v2.png'))
+icon(512).save(os.path.join(OUT, 'icon-512-v2.png'))
+icon(180).save(os.path.join(OUT, 'apple-touch-icon-v2.png'))
+icon(512, maskable=True).save(os.path.join(OUT, 'icon-maskable-512-v2.png'))
 print('ok')

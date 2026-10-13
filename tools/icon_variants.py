@@ -106,10 +106,10 @@ def rounded(im, rad):
 if __name__ == '__main__':
     if sys.argv[1] == '--install':
         fn = VARIANTS[sys.argv[2]][1]; out = os.path.join(os.path.dirname(__file__), '..', 'docs', 'icons')
-        for n, s in [('icon-192.png', 192), ('icon-512.png', 512), ('apple-touch-icon.png', 180)]: render(fn, s).save(os.path.join(out, n))
+        for n, s in [('icon-192-v2.png', 192), ('icon-512-v2.png', 512), ('apple-touch-icon-v2.png', 180)]: render(fn, s).save(os.path.join(out, n))
         # maskable: same art scaled into the safe zone
         big = render(fn, 512); mk = Image.new('RGB', (512, 512), big.getpixel((4, 4))); mk.paste(big.resize((410, 410), Image.LANCZOS), (51, 51))
-        mk.save(os.path.join(out, 'icon-maskable-512.png')); print('installed', sys.argv[2]); sys.exit()
+        mk.save(os.path.join(out, 'icon-maskable-512-v2.png')); print('installed', sys.argv[2]); sys.exit()
     out = sys.argv[1]; os.makedirs(out, exist_ok=True)
     sheet = Image.new('RGB', (3 * 300, 2 * 330), (28, 28, 30)); d = ImageDraw.Draw(sheet)
     try: font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 18)
