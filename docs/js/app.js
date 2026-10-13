@@ -160,19 +160,46 @@ if (innerScroll) document.documentElement.classList.add('inner-scroll');
 const scroller = () => innerScroll ? $('scroller') : (document.scrollingElement || document.documentElement);
 function scrollToTop() { scroller().scrollTo({ top: 0, behavior: 'smooth' }); }
 if (innerScroll) {
+  // Themed scroll indicator. Sizes are measured only when the layout changes; while scrolling, a
+  // requestAnimationFrame loop reads scrollTop every frame (iOS throttles scroll events) and moves the
+  // thumb with GPU transforms only. Pulling past either end squishes the thumb like iOS's own.
   const sc = $('scroller'), bar = $('sbar'), thumb = bar.firstElementChild;
-  let hideT = null;
-  const paint = show => {
-    const track = bar.clientHeight, ch = sc.clientHeight, sh = sc.scrollHeight;
-    if (sh <= ch + 2) { bar.classList.remove('on'); return; }
-    const h = Math.max(36, track * ch / sh);
-    const max = sh - ch, y = Math.min(max, Math.max(0, sc.scrollTop));
+  let track = 0, ch = 0, sh = 0, h = 0, raf = 0, lastTop = NaN, idle = 0, hideT = null;
+  const measure = () => {
+    track = bar.clientHeight; ch = sc.clientHeight; sh = sc.scrollHeight;
+    h = Math.max(28, track * ch / sh * 0.8);
     thumb.style.height = h + 'px';
-    thumb.style.transform = `translateY(${(track - h) * y / max}px)`;
-    if (show) { bar.classList.add('on'); clearTimeout(hideT); hideT = setTimeout(() => bar.classList.remove('on'), 900); }
+    lastTop = NaN;
   };
-  sc.addEventListener('scroll', () => paint(true), { passive: true });
-  addEventListener('resize', () => paint(false));
+  const draw = () => {
+    const top = sc.scrollTop;
+    if (top === lastTop) return false;
+    lastTop = top;
+    const max = sh - ch;
+    if (max <= 2) { bar.classList.remove('on'); return false; }
+    let y = (track - h) * Math.min(1, Math.max(0, top / max)), sq = 1;
+    if (top < 0) { sq = Math.max(0.25, 1 + top / h); }                              // pulled past the top
+    else if (top > max) { sq = Math.max(0.25, 1 - (top - max) / h); y = track - h * sq; }   // past the bottom
+    thumb.style.transformOrigin = top < 0 ? 'top' : 'bottom';
+    thumb.style.transform = `translate3d(0,${y.toFixed(2)}px,0) scaleY(${sq.toFixed(3)})`;
+    return true;
+  };
+  const loop = () => {
+    if (draw()) idle = 0; else idle++;
+    if (idle < 12) raf = requestAnimationFrame(loop);
+    else { raf = 0; clearTimeout(hideT); hideT = setTimeout(() => bar.classList.remove('on'), 700); }
+  };
+  const wake = () => {
+    if (!track) measure();
+    clearTimeout(hideT);
+    if (sh - ch > 2) bar.classList.add('on');
+    idle = 0;
+    if (!raf) raf = requestAnimationFrame(loop);
+  };
+  sc.addEventListener('scroll', wake, { passive: true });
+  sc.addEventListener('touchstart', () => { measure(); }, { passive: true });
+  addEventListener('resize', measure);
+  if (window.ResizeObserver) new ResizeObserver(measure).observe(sc.querySelector('.wrap'));
 }
 
 function setTab(t) {
