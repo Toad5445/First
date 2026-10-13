@@ -16,7 +16,7 @@ Live app: https://toad5445.github.io/First/
   - `sw.js`: offline cache. **Bump `VERSION` in it on every release** so installed apps update.
 - `tests/`: `npm test` runs the engine tests. Browser checks: `tests/ui-smoke.mjs`, `tests/theme-shots.mjs`,
   `tests/sync-live.mjs` (serve `docs/` on port 8765 first).
-- `tools/`: icon generator and Firebase bundle entry.
+- `tools/`: icon generator (`python3 tools/icon_variants.py --install shadow`) and Firebase bundle entry.
 
 ## Local development
 
