@@ -80,7 +80,7 @@ export const JOBS = {
   'STR+CHA': ['Executioner', 'Blood Champion', 'Tyrant', 'Power that wants an audience, and gets one.'],
   'STR+WIL': ['Berserker', 'Reaver', 'Calamity', 'Pain is just information.'],
   'STR+INT': ['Hexblade', 'Runeslayer', 'Void Saint', 'A cursed blade guided by a cold mind.'],
-  'VIT+WIS': ['Necromancer', 'Lich', 'Death Sovereign', 'Commands the body\'s decay through ritual and discipline.'],
+  'VIT+WIS': ['Necromancer', 'Lich', 'Grave Monarch', 'Commands the body\'s decay through ritual and discipline.'],
   'VIT+CHA': ['Vampire', 'Nosferatu', 'Progenitor', 'Undying energy and a presence people can\'t look away from.'],
   'VIT+WIL': ['Inquisitor', 'Dread Templar', 'Hierophant', 'Discipline enforced on the flesh.'],
   'VIT+INT': ['Plague Doctor', 'Plaguebringer', 'Pestilence', 'Treats the body like an experiment.'],
