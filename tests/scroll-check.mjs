@@ -1,0 +1,43 @@
+// Touch devices: page scrolls in #scroller with a themed indicator; desktop keeps normal page scrolling.
+import { chromium } from 'playwright';
+import { readFileSync, existsSync } from 'node:fs';
+const FX = new URL('./fixture-save-v2.json', import.meta.url);
+const save = existsSync(FX) ? readFileSync(FX, 'utf8') : null;
+const O = process.env.SHOTS || '.';
+const b = await chromium.launch();
+const errs = [];
+async function open(mobile, theme) {
+  const ctx = await b.newContext(mobile ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, serviceWorkers: 'block' } : { viewport: { width: 1200, height: 800 }, serviceWorkers: 'block' });
+  const p = await ctx.newPage();
+  p.on('pageerror', e => errs.push(e.message));
+  await p.clock.install({ time: new Date('2026-10-13T12:00:00') });
+  if (save) await p.addInitScript(([s, t]) => { if (!localStorage.getItem('the-system-v3')) { const o = JSON.parse(s); o.settings.theme = t; localStorage.setItem('the-system-save-v1', JSON.stringify(o)); } }, [save, theme]);
+  await p.goto('http://localhost:8765/');
+  await p.click(save ? '#mclose' : '#w-fresh');
+  await p.evaluate(() => document.getElementById('toasts').innerHTML = '');
+  return p;
+}
+const m = await open(true, 'demon');
+console.log('mobile inner-scroll:', await m.evaluate(() => document.documentElement.classList.contains('inner-scroll')));
+await m.mouse.move(200, 600);
+await m.evaluate(() => document.getElementById('scroller').scrollBy(0, 900));
+await m.waitForTimeout(200);
+console.log('scrolled:', await m.evaluate(() => document.getElementById('scroller').scrollTop), '| bar shown:', await m.evaluate(() => document.getElementById('sbar').classList.contains('on')));
+await m.screenshot({ path: `${O}/scroll-mobile.png` });
+await m.waitForTimeout(1600);
+console.log('bar faded after scrolling stops:', !(await m.evaluate(() => document.getElementById('sbar').classList.contains('on'))));
+await m.click('.tab[data-tab="quests"]'); await m.waitForTimeout(900);
+console.log('tap current tab -> top:', await m.evaluate(() => document.getElementById('scroller').scrollTop));
+await m.click('.quest:has-text("Meditate")'); await m.waitForTimeout(300);
+console.log('quest toggles:', await m.locator('.quest.done:has-text("Meditate")').count() === 1);
+await m.click('.tab[data-tab="manage"]'); await m.click('[data-edit]'); await m.waitForTimeout(600);
+console.log('edit form scrolled into view:', await m.evaluate(() => { const r = document.getElementById('qform').getBoundingClientRect(); return r.top > -5 && r.top < 300; }));
+await m.click('.tab[data-tab="log"]'); await m.click('[data-sub="weekly"]');
+await m.click('.tab[data-tab="quests"]'); await m.click('[data-act="report"]'); await m.waitForTimeout(300);
+console.log('weekly report button opens Log:', await m.evaluate(() => !document.getElementById('pane-log').classList.contains('hidden')));
+const d = await open(false, 'system');
+console.log('desktop inner-scroll:', await d.evaluate(() => document.documentElement.classList.contains('inner-scroll')));
+await d.mouse.wheel(0, 800); await d.waitForTimeout(300);
+console.log('desktop page scrolls:', await d.evaluate(() => scrollY));
+console.log('page errors:', errs.length ? errs : 'none');
+await b.close();

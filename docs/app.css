@@ -692,3 +692,20 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 @keyframes sheetup{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
 [data-theme="ronin"] .tab{background:rgba(20,14,36,.55);color:#e6d3dc;border-color:rgba(255,200,150,.25)}
 [data-theme="ronin"] .tab.on{background:var(--a);color:var(--on-a)}
+
+/* ================= SCROLLING =================
+   Desktop: themed native scrollbar. Touch devices (class set in app.js): the page scrolls inside
+   #scroller with the native indicator hidden, and #sbar draws a themed one instead. */
+html{scrollbar-color:rgba(var(--a-rgb),.55) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(var(--a-rgb),.45);border-radius:10px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(var(--a-rgb),.7);background-clip:padding-box}
+#sbar{display:none}
+html.inner-scroll,html.inner-scroll body{height:100%;overflow:hidden}
+html.inner-scroll #scroller{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;z-index:1}
+html.inner-scroll #scroller::-webkit-scrollbar{display:none;width:0;height:0}
+html.inner-scroll #sbar{display:block;position:fixed;z-index:30;right:3px;width:3px;pointer-events:none;
+  top:calc(env(safe-area-inset-top) + 6px);bottom:calc(env(safe-area-inset-bottom) + 6px);opacity:0;transition:opacity .45s}
+html.inner-scroll #sbar.on{opacity:1;transition:opacity .12s}
+#sbar i{position:absolute;left:0;right:0;top:0;border-radius:3px;background:var(--a);box-shadow:0 0 6px rgba(var(--a-rgb),.6);will-change:transform}

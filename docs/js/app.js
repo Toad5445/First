@@ -154,7 +154,30 @@ function renderTabs() {
   $('tabs').innerHTML = TABS.map(([id, n]) => `<button class="tab ${view.tab === id ? 'on' : ''}" data-tab="${id}">${n}${dots[id] ? '<span class="dot"></span>' : ''}</button>`).join('');
   $('tabs').querySelectorAll('.tab').forEach(b => b.onclick = () => setTab(b.dataset.tab));
 }
+// On touch devices the page scrolls inside #scroller so the themed indicator can replace iOS's gray one.
+const innerScroll = matchMedia('(pointer: coarse)').matches;
+if (innerScroll) document.documentElement.classList.add('inner-scroll');
+const scroller = () => innerScroll ? $('scroller') : (document.scrollingElement || document.documentElement);
+function scrollToTop() { scroller().scrollTo({ top: 0, behavior: 'smooth' }); }
+if (innerScroll) {
+  const sc = $('scroller'), bar = $('sbar'), thumb = bar.firstElementChild;
+  let hideT = null;
+  const paint = show => {
+    const track = bar.clientHeight, ch = sc.clientHeight, sh = sc.scrollHeight;
+    if (sh <= ch + 2) { bar.classList.remove('on'); return; }
+    const h = Math.max(36, track * ch / sh);
+    const max = sh - ch, y = Math.min(max, Math.max(0, sc.scrollTop));
+    thumb.style.height = h + 'px';
+    thumb.style.transform = `translateY(${(track - h) * y / max}px)`;
+    if (show) { bar.classList.add('on'); clearTimeout(hideT); hideT = setTimeout(() => bar.classList.remove('on'), 900); }
+  };
+  sc.addEventListener('scroll', () => paint(true), { passive: true });
+  addEventListener('resize', () => paint(false));
+}
+
 function setTab(t) {
+  // tapping the tab you're already on jumps back to the top (stands in for iOS's tap-the-status-bar)
+  if (t === view.tab && scroller().scrollTop > 0) { scrollToTop(); return; }
   view.tab = t;
   document.querySelectorAll('.pane').forEach(p => p.classList.toggle('hidden', p.id !== 'pane-' + t));
   render();
@@ -322,7 +345,7 @@ function questsClick(e) {
     if (act === 'pip') { const r = C.day(S, d); const cur = r.j && r.j[a.dataset.k]; setJournal(d, a.dataset.k, cur === +a.dataset.v ? null : +a.dataset.v); renderJournal(d); return; }
     if (act === 'quickadd') return quickAdd();
     if (act === 'inn') return openInn();
-    if (act === 'report') { view.tab = 'log'; view.logSub = 'weekly'; view.week = null; setTab('log'); return; }
+    if (act === 'report') { view.logSub = 'weekly'; view.week = null; setTab('log'); return; }
     return;
   }
   if (e.target.closest('input,select,textarea,label')) return;
@@ -921,7 +944,7 @@ function startEdit(id) {
   updateFormType();
   $('formtitle').textContent = 'Edit Quest'; $('f-save').textContent = 'Save Changes';
   $('f-cancel').classList.remove('hidden');
-  renderManage(); $('f-name').focus(); window.scrollTo({ top: $('qform').getBoundingClientRect().top + scrollY - 20, behavior: 'smooth' });
+  renderManage(); $('f-name').focus(); $('qform').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function saveQuest() {
   C.freezeHistory(S);
