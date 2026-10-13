@@ -160,15 +160,18 @@ if (innerScroll) document.documentElement.classList.add('inner-scroll');
 const scroller = () => innerScroll ? $('scroller') : (document.scrollingElement || document.documentElement);
 function scrollToTop() { scroller().scrollTo({ top: 0, behavior: 'smooth' }); }
 if (innerScroll) {
-  // Themed scroll indicator. Sizes are measured only when the layout changes; while scrolling, a
-  // requestAnimationFrame loop reads scrollTop every frame (iOS throttles scroll events) and moves the
-  // thumb with GPU transforms only. Pulling past either end squishes the thumb like iOS's own.
-  const sc = $('scroller'), bar = $('sbar'), thumb = bar.firstElementChild;
+  // Themed scroll indicator. Where the browser supports scroll-driven animations (iOS 26+), it moves the
+  // thumb itself in sync with scrolling. Otherwise a requestAnimationFrame loop does it. Either way, JS
+  // handles fading and the squish when pulling past either end, and sizes are measured only on layout changes.
+  const sc = $('scroller'), bar = $('sbar'), mover = bar.firstElementChild, vis = mover.firstElementChild;
+  const sda = !!(window.CSS && CSS.supports('animation-timeline: --a') && CSS.supports('timeline-scope: --a'));
+  if (sda) document.documentElement.classList.add('sda');
   let track = 0, ch = 0, sh = 0, h = 0, raf = 0, lastTop = NaN, idle = 0, hideT = null;
   const measure = () => {
     track = bar.clientHeight; ch = sc.clientHeight; sh = sc.scrollHeight;
     h = Math.max(28, track * ch / sh * 0.8);
-    thumb.style.height = h + 'px';
+    bar.style.setProperty('--sb-h', h + 'px');
+    bar.style.setProperty('--sb-travel', Math.max(0, track - h) + 'px');
     lastTop = NaN;
   };
   const draw = () => {
@@ -177,11 +180,11 @@ if (innerScroll) {
     lastTop = top;
     const max = sh - ch;
     if (max <= 2) { bar.classList.remove('on'); return false; }
-    let y = (track - h) * Math.min(1, Math.max(0, top / max)), sq = 1;
-    if (top < 0) { sq = Math.max(0.25, 1 + top / h); }                              // pulled past the top
-    else if (top > max) { sq = Math.max(0.25, 1 - (top - max) / h); y = track - h * sq; }   // past the bottom
-    thumb.style.transformOrigin = top < 0 ? 'top' : 'bottom';
-    thumb.style.transform = `translate3d(0,${y.toFixed(2)}px,0) scaleY(${sq.toFixed(3)})`;
+    if (!sda) mover.style.transform = `translate3d(0,${((track - h) * Math.min(1, Math.max(0, top / max))).toFixed(2)}px,0)`;
+    // past an end: the thumb stays pinned there and shrinks toward that end
+    if (top < 0) { vis.style.transformOrigin = 'top'; vis.style.transform = `scaleY(${Math.max(0.25, 1 + top / h).toFixed(3)})`; }
+    else if (top > max) { vis.style.transformOrigin = 'bottom'; vis.style.transform = `scaleY(${Math.max(0.25, 1 - (top - max) / h).toFixed(3)})`; }
+    else if (vis.style.transform) vis.style.transform = '';
     return true;
   };
   const loop = () => {
@@ -197,9 +200,10 @@ if (innerScroll) {
     if (!raf) raf = requestAnimationFrame(loop);
   };
   sc.addEventListener('scroll', wake, { passive: true });
-  sc.addEventListener('touchstart', () => { measure(); }, { passive: true });
+  sc.addEventListener('touchstart', measure, { passive: true });
   addEventListener('resize', measure);
   if (window.ResizeObserver) new ResizeObserver(measure).observe(sc.querySelector('.wrap'));
+  measure();
 }
 
 function setTab(t) {
