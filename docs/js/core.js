@@ -393,11 +393,10 @@ export function earnedAchievements(S, R, now = Date.now()) {
   const c = achContext(S, R, now);
   return ACHIEVEMENTS.filter(a => a.test(c)).map(a => a.id);
 }
+// Titles come from streaks and feats only. Job names stay on the Class line, so they aren't repeated here.
 export function availableTitles(S, R) {
   const out = TITLES.filter(t => R.best >= t[0]).map(t => t[1]);
   for (const a of ACHIEVEMENTS) if (a.title && S.ach[a.id]) out.push(a.title);
-  const L = levelInfo(R.xp).L;
-  for (const j of S.jobs) for (let tier = 1; tier <= jobTier(L); tier++) out.push(jobName(j.key, tier));
   return [...new Set(out)];
 }
 

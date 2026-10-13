@@ -719,7 +719,7 @@ function checkAchievements() {
 function renderFeats() {
   const got = ACHIEVEMENTS.filter(a => S.ach[a.id]).length;
   $('pane-feats').innerHTML = `<div class="win"><h2>Feats</h2>
-    <div class="note" style="margin:-6px 0 16px"><b>${got} / ${ACHIEVEMENTS.length}</b> unlocked. Some feats are hidden until you earn them. Feats with a title let you equip it on the Status tab.</div>
+    <div class="note" style="margin:-6px 0 16px"><b>${got} / ${ACHIEVEMENTS.length}</b> unlocked. Some feats are hidden until you earn them. Feats with a title let you equip it on the Status tab (your job already shows as your class).</div>
     <div class="achs">${ACHIEVEMENTS.map(a => {
       const on = !!S.ach[a.id], hide = a.hidden && !on;
       return `<div class="ach ${on ? 'on' : 'off'}"><div class="ai">${on ? '★' : hide ? '?' : '☆'}</div><div>

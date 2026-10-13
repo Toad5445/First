@@ -83,3 +83,11 @@ test('goalFromName', () => {
   assert.equal(C.goalFromName('Read 30 mins'), 30);
   assert.equal(C.goalFromName('Workout'), 0);
 });
+
+test('job names are not offered as titles', () => {
+  const S = C.normalize({ v: 3, name: 'X', startDate: '2026-10-01', v3Since: '2026-10-01', settings: {}, quests: [], days: {}, jobs: [{ date: '2026-10-01', key: 'VIT+WIS' }], ach: {}, seen: {} }, new Date('2026-10-13T12:00:00').getTime());
+  const R = C.compute(S, new Date('2026-10-13T12:00:00').getTime());
+  const titles = C.availableTitles(S, { ...R, xp: 100000 });
+  assert.ok(!titles.includes('Necromancer') && !titles.includes('Lich') && !titles.includes('Grave Monarch'));
+  assert.ok(titles.includes('Wanderer'));
+});
