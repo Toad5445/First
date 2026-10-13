@@ -14,6 +14,7 @@ export const firebaseConfig = {
 
 const MAP_SECTIONS = new Set(['log', 'skip', 't']);
 const OWNER_KEY = 'the-system-owner';
+const BASE_KEY = 'the-system-synced';   // last state known to be in the cloud, kept across app restarts
 const clone = o => JSON.parse(JSON.stringify(o));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const coreKeys = s => Object.keys(s).filter(k => k !== 'days' && k[0] !== '_');
@@ -21,6 +22,11 @@ const coreKeys = s => Object.keys(s).filter(k => k !== 'days' && k[0] !== '_');
 let F = null;            // firebase module
 let auth = null, db = null, user = null;
 let base = null;         // last state known to be in Firestore
+function setBase(s) {
+  base = clone(s);
+  try { localStorage.setItem(BASE_KEY, JSON.stringify(base)); } catch (e) { /* storage full: fall back to memory only */ }
+}
+function savedBase() { try { return JSON.parse(localStorage.getItem(BASE_KEY) || 'null'); } catch (e) { return null; } }
 let hooks = {};
 let unsubs = [];
 let ready = false;       // listeners attached and initial decision made
@@ -92,8 +98,23 @@ async function attach(u) {
     if (owner !== u.uid && hooks.isMeaningful(local) && !same(stripLocal(local), stripLocal(hooks.normalize(remote)))) {
       useLocal = (await hooks.chooseSave(local, remote)) === 'local';
     }
+    const prev = owner === u.uid && savedBase();
     if (useLocal) await pushAll(local, months.docs.map(d => d.id));
-    else { base = clone(hooks.applyRemote(remote)); }
+    else if (prev) {
+      // Same device as before: changes made since the last sync (offline, or in the first
+      // seconds after opening the app) are replayed on top of the cloud save, not thrown away.
+      const changes = diff(prev, local);
+      const merged = applyDiff(clone(remote), changes);
+      setBase(hooks.normalize(remote));
+      hooks.applyRemote(merged);
+      localStorage.setItem(OWNER_KEY, u.uid);
+      ready = true;
+      push(hooks.getState());
+      listen();
+      setStatus(navigator.onLine ? (pending ? 'syncing' : 'synced') : 'offline');
+      return;
+    }
+    else setBase(hooks.applyRemote(remote));
   }
   localStorage.setItem(OWNER_KEY, u.uid);
   ready = true;
@@ -108,7 +129,7 @@ function listen() {
   const apply = () => {
     if (!coreData || !monthDocs) return;
     const remote = assemble(coreData, monthDocs);
-    base = clone(hooks.applyRemote(remote));
+    setBase(hooks.applyRemote(remote));
   };
   unsubs.push(F.onSnapshot(coreRef(), snap => { if (snap.exists()) { coreData = snap.data(); apply(); } }, e => console.warn(e)));
   unsubs.push(F.onSnapshot(monthsCol(), snap => { monthDocs = snap.docs; apply(); }, e => console.warn(e)));
@@ -122,15 +143,15 @@ async function pushAll(s, existingMonths = []) {
   for (const d in s.days) (byMonth[d.slice(0, 7)] = byMonth[d.slice(0, 7)] || {})[d] = s.days[d];
   for (const ym in byMonth) b.set(monthRef(ym), { days: clone(byMonth[ym]) });
   for (const ym of existingMonths) if (!byMonth[ym]) b.delete(monthRef(ym));
+  setBase(s);
   await commit(b);
-  base = clone(s);
 }
 
 // Compare the last synced state with the current one and write only what changed.
 export function push(s) {
   if (!user || !ready || !base) return;
   const writes = diff(base, s);
-  base = clone(s);
+  setBase(s);
   if (!writes.core.length && !Object.keys(writes.months).length) return;
   const b = F.writeBatch(db);
   if (writes.core.length) {
@@ -162,6 +183,18 @@ function setIn(o, path, v) {
   let cur = o;
   for (let i = 0; i < path.length - 1; i++) cur = cur[path[i]] = cur[path[i]] || {};
   cur[path[path.length - 1]] = v;
+}
+
+// Apply diff() output to a state object (used to replay local changes onto the cloud copy).
+export function applyDiff(s, writes) {
+  for (const [k, v] of writes.core) { if (v === undefined) delete s[k]; else s[k] = clone(v); }
+  for (const ym in writes.months) for (const [path, v] of writes.months[ym]) {
+    let cur = s;
+    for (let i = 0; i < path.length - 1; i++) cur = cur[path[i]] = cur[path[i]] || {};
+    const last = path[path.length - 1];
+    if (v === undefined) delete cur[last]; else cur[last] = clone(v);
+  }
+  return s;
 }
 
 export function diff(a, b) {
