@@ -709,7 +709,8 @@ html.inner-scroll #sbar{display:block;position:fixed;z-index:30;right:3px;width:
   top:calc(env(safe-area-inset-top) + 6px);bottom:calc(env(safe-area-inset-bottom) + 6px);opacity:0;transition:opacity .45s}
 html.inner-scroll #sbar.on{opacity:1;transition:opacity .12s}
 #sbar i{position:absolute;left:0;right:0;top:0;height:var(--sb-h,40px);will-change:transform;backface-visibility:hidden}
-#sbar b{display:block;height:100%;border-radius:3px;background:var(--a);box-shadow:0 0 6px rgba(var(--a-rgb),.6);will-change:transform}
+#sbar b{display:block;height:100%;border-radius:3px;background:var(--a);box-shadow:0 0 6px rgba(var(--a-rgb),.6);will-change:transform;
+  transition:transform .12s cubic-bezier(.25,.8,.35,1)}   /* iOS reports overscroll in steps; this eases between them */
 /* where supported (iOS 26+, Chrome), the browser moves the thumb itself in step with scrolling */
 html.sda body{timeline-scope:--page}
 html.sda #scroller{scroll-timeline:--page block}

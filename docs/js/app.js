@@ -184,7 +184,7 @@ if (innerScroll) {
     // past an end: the thumb stays pinned there and shrinks toward that end
     if (top < 0) { vis.style.transformOrigin = 'top'; vis.style.transform = `scaleY(${Math.max(0.25, 1 + top / h).toFixed(3)})`; }
     else if (top > max) { vis.style.transformOrigin = 'bottom'; vis.style.transform = `scaleY(${Math.max(0.25, 1 - (top - max) / h).toFixed(3)})`; }
-    else if (vis.style.transform) vis.style.transform = '';
+    else if (vis.style.transform !== 'scaleY(1)' && vis.style.transform) vis.style.transform = 'scaleY(1)';   // eases back to full size
     return true;
   };
   const loop = () => {
