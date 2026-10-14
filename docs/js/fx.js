@@ -11,7 +11,11 @@ const FONTS = {
   dragon: 'family=Cinzel:wght@600;700',
   abyss: 'family=Exo+2:wght@500;600;700',
   ronin: 'family=Cormorant+Garamond:wght@600;700',
-  vrmmo: 'family=Orbitron:wght@500;600;700'
+  vrmmo: 'family=Orbitron:wght@500;600;700',
+  eclipse: 'family=Marcellus',
+  bloodmoon: 'family=Cinzel:wght@600;700',
+  rift: 'family=Exo+2:wght@500;600;700',
+  wraith: 'family=Cormorant+Garamond:wght@600;700'
 };
 const loaded = new Set();
 export function loadFonts(theme) {

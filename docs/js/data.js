@@ -116,7 +116,12 @@ export const THEMES = [
   ['dragon', 'Dragon\'s Hoard', 'Emerald scales and molten gold. Finished quests turn to coin.'],
   ['abyss', 'Abyssal Depths', 'Bioluminescence in the deep. Quests rise like light.'],
   ['ronin', 'Ronin at Dusk', 'Amber sunset, ink mountains, brushstroke bars.'],
-  ['vrmmo', 'Virtual Dungeon', 'Clean VRMMO HUD. Link start.']
+  ['vrmmo', 'Virtual Dungeon', 'Clean VRMMO HUD. Link start.'],
+  ['eclipse', 'Eclipse', 'A black sun with a pale corona over near-black.'],
+  ['bloodmoon', 'Blood Moon', 'A huge dim red moon rising behind everything.'],
+  ['rift', 'Void Rift', 'A glowing tear in black space, slowly breathing.'],
+  ['wraith', 'Wraith', 'Pale fog drifting over cold blue-black.'],
+  ['forge', 'Obsidian Forge', 'Volcanic glass, lava cracks, rising embers.']
 ];
 
 // Achievements. test(ctx) runs against compute() output plus helpers. Some are hidden until earned.
