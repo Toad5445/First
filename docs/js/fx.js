@@ -19,8 +19,8 @@ const FONTS = {
   rift: 'family=Exo+2:wght@500;600;700',
   wraith: 'family=Cormorant+Garamond:wght@600;700',
   ghostlights: ['family=Cormorant+Garamond:wght@600;700', SATOSHI],
-  ashfall: ['family=UnifrakturMaguntia&family=Cinzel:wght@700', SATOSHI, 'https://api.fontshare.com/v2/css?f[]=boska@700&display=swap'],
-  monarch: 'family=Grenze+Gotisch:wght@600;700&family=Cinzel:wght@600;700',
+  ashfall: ['family=UnifrakturMaguntia', SATOSHI],
+  monarch: 'family=Grenze+Gotisch:wght@600;700',
   frostbound: 'family=Marcellus&family=Khand:wght@500;600;700'
 };
 const loaded = new Set();
