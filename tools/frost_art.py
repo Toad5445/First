@@ -1,5 +1,5 @@
 # Frostbound: frost ferns grown irregularly in from every edge, under a frosted-glass sheen.
-# python3 tools/frost_art.py   (writes docs/art/frost.svg and prints the sheen CSS for docs/app.css)
+# python3 tools/frost_art.py   (prints the glass-sheen CSS for docs/app.css; the frost itself is tools/frost_needle.py)
 import random, math, urllib.parse
 def uri(s): return 'url("data:image/svg+xml,' + urllib.parse.quote(s, safe=" =:/'(),;-.") + '")'
 X = "xmlns='http://www.w3.org/2000/svg'"
@@ -81,11 +81,4 @@ def sheen():
                "<rect x='-400' y='520' width='1400' height='46' fill='url(#b2)' filter='url(#s2)'/></g></svg>")
 
 if __name__ == '__main__':
-    raw = uri
-    globals()['uri'] = lambda svg: svg          # the frost art is a standalone file, not a data URI
-    open('docs/art/frost.svg', 'w').write(frost())
-    W, H = 1600, 1000                           # landscape version for wide screens, so the frost isn't scaled up
-    open('docs/art/frost-wide.svg', 'w').write(frost())
-    W, H = 600, 1000
-    globals()['uri'] = raw
     print('--frost-sheen:' + sheen() + ';')
