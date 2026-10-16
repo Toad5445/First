@@ -73,7 +73,7 @@ def fern_thickness(rnd):
     band = rnd.choices((.75, 1.15, 1.9), weights=(55, 30, 15))[0]
     return band * rnd.uniform(.85, 1.15)
 
-def feather(seed=7, spacing=44, wiggle=1.4, bend_max=.9, levels=2, width=(8, 13), length=(110, 300), branch_len=.42, thick=1.0, reach=None, reach_side=None):
+def feather(seed=7, spacing=44, wiggle=1.4, bend_max=.9, levels=2, width=(8, 13), length=(110, 300), branch_len=.42, thick=1.0, reach=None, reach_side=None, spread=42):
     """Dendritic ferns: a gently curving spine; side branches at ice's 60 degrees, evenly spaced and shorter toward
     the tip (a feather outline); smaller branches off those at 60 again. Growth stops where it meets other frost."""
     rnd = random.Random(seed); grid = Grid(6); layers = {'soft': [], 'mid': [], 'crisp': []}; owner = [0]
@@ -109,7 +109,7 @@ def feather(seed=7, spacing=44, wiggle=1.4, bend_max=.9, levels=2, width=(8, 13)
     for k, (x, y, inward) in enumerate(seeds):
         L = rnd.uniform(*length) * (1.25 if rnd.random() < .2 else 1)
         fern_reach[0] = rnd.uniform(.65, 1.05)                    # each fern stops at its own depth: an uneven frost line
-        dev = rnd.uniform(-42, 42)
+        dev = rnd.uniform(-spread, spread)                        # how far a fern may tilt from straight in
         if reach:                                                 # size the whole fern to fit the band, so it keeps its tapered shape
             r = (reach_side or reach) if inward in (0, 180) else reach      # side edges may reach further than top/bottom
             L = min(L, r * fern_reach[0] / max(.35, math.cos(math.radians(dev))))
@@ -119,7 +119,7 @@ def feather(seed=7, spacing=44, wiggle=1.4, bend_max=.9, levels=2, width=(8, 13)
 VARIANTS = {
     'phone': dict(seed=5, spacing=36, wiggle=.35, bend_max=.15, width=(9, 14), length=(110, 260), branch_len=.36, reach=150),
     # PCs have wide side margins: denser, longer ferns, reaching further in from the sides than from top and bottom
-    'pc':    dict(seed=5, spacing=26, wiggle=.35, bend_max=.15, width=(9, 14), length=(180, 460), branch_len=.38, reach=200, reach_side=360),
+    'pc':    dict(seed=5, spacing=26, wiggle=.35, bend_max=.15, width=(9, 14), length=(180, 460), branch_len=.38, reach=200, reach_side=360, spread=25),
 }
 
 if __name__ == '__main__':
