@@ -15,53 +15,57 @@ def fern(x, y, ang, L, w, depth, rnd, out):
     left, right = [], []
     for i, (px, py) in enumerate(pts):
         nx, ny = (pts[min(i + 1, segs)][0] - pts[max(i - 1, 0)][0]), (pts[min(i + 1, segs)][1] - pts[max(i - 1, 0)][1])
-        n = math.hypot(nx, ny) or 1; ww = w * (1 - i / segs) ** 1.2 * rnd.uniform(.8, 1.15)
+        n = math.hypot(nx, ny) or 1; ww = w * (1 - i / segs) ** .75 * rnd.uniform(.8, 1.15)
         left.append((px - ny / n * ww, py + nx / n * ww)); right.append((px + ny / n * ww, py - nx / n * ww))
     poly = left + right[::-1]
     out.append(f"<path d='M{' '.join(f'{p:.0f} {q:.0f}' for p, q in poly)}z'/>")
     if depth == 0: return
     for i in range(1, segs):
-        if rnd.random() > rnd.uniform(.45, .9): continue
+        if rnd.random() > rnd.uniform(.3, .7): continue
         t = i / segs; bl = L * (1 - t) * rnd.uniform(.25, .75)
-        if bl < 6: continue
+        if bl < 14: continue
         da = math.degrees(math.atan2(pts[i+1][1] - pts[i][1], pts[i+1][0] - pts[i][0]))
         side = rnd.choice((-1, 1)) if rnd.random() < .45 else 0
         for sd in ((side,) if side else (-1, 1)):
-            fern(pts[i][0], pts[i][1], da + sd * rnd.uniform(35, 80), bl * rnd.uniform(.7, 1.1), w * (1 - t) * rnd.uniform(.5, .8), depth - 1, rnd, out)
+            fern(pts[i][0], pts[i][1], da + sd * rnd.uniform(35, 80), bl * rnd.uniform(.7, 1.1), w * (1 - t) ** .6 * rnd.uniform(.55, .85), depth - 1, rnd, out)
 
 def frost(seed=21):
-    rnd = random.Random(seed); big, small = [], []
-    def edge_seed():
-        e = rnd.choices('lrtb', weights=(5, 5, 3, 4))[0]
-        if e == 'l': return -5, rnd.uniform(-50, H + 50), rnd.uniform(-60, 60)
-        if e == 'r': return W + 5, rnd.uniform(-50, H + 50), 180 + rnd.uniform(-60, 60)
-        if e == 't': return rnd.uniform(-50, W + 50), -5, 90 + rnd.uniform(-60, 60)
-        return rnd.uniform(-50, W + 50), H + 5, -90 + rnd.uniform(-60, 60)
-    per = (W + H) / 1600                         # more ferns on a bigger pane
-    for _ in range(int(34 * per)):
-        x, y, a = edge_seed(); fern(x, y, a, rnd.uniform(70, 260), rnd.uniform(2.2, 5), 2, rnd, big)
-    for _ in range(int(40 * per)):     # small stray crystals scattered in from the edges
-        x, y, a = edge_seed()
-        d = abs(rnd.gauss(0, 80)); x += math.cos(math.radians(a)) * d; y += math.sin(math.radians(a)) * d
-        fern(x, y, rnd.uniform(0, 360), rnd.uniform(14, 50), rnd.uniform(1, 2), 1, rnd, small)
-    rime = ''
-    for _ in range(int(320 * per)):
-        e = rnd.choice('lrtb'); dpt = abs(rnd.gauss(0, 34))
-        x = dpt if e == 'l' else W - dpt if e == 'r' else rnd.uniform(0, W)
-        y = dpt if e == 't' else H - dpt if e == 'b' else rnd.uniform(0, H)
-        rime += f"<circle cx='{x:.0f}' cy='{y:.0f}' r='{rnd.uniform(.5,1.6):.1f}' fill-opacity='{rnd.uniform(.2,.75):.2f}'/>"
-    B = ''.join(big); Sm = ''.join(small)
-    d = ("<radialGradient id='vg' cx='.5' cy='.5' r='.72'><stop offset='.58' stop-color='#bfe6ff' stop-opacity='0'/><stop offset='.85' stop-color='#bfe6ff' stop-opacity='.13'/><stop offset='1' stop-color='#e6f7ff' stop-opacity='.34'/></radialGradient>"
-         "<filter id='h' x='-.1' y='-.1' width='1.2' height='1.2'><feGaussianBlur stdDeviation='6'/></filter>"
+    """Frost grows in uneven clumps from the edges: each clump has a thick frosted base and a handful of broad
+    ferns, some crisp and some soft (out of focus), with wide gaps of clear glass between clumps."""
+    rnd = random.Random(seed); layers = {'soft': [], 'mid': [], 'crisp': []}; mats = ''
+    def on_edge(e, t):
+        return {'l': (-8, t * H, 0), 'r': (W + 8, t * H, 180), 't': (t * W, -8, 90), 'b': (t * W, H + 8, -90)}[e]
+    clumps = []
+    per = (W + H) / 1600
+    for e, n in (('l', 3), ('r', 3), ('t', 2), ('b', 2)):
+        n = max(1, round(n * per * rnd.uniform(.8, 1.3)))
+        for _ in range(n): clumps.append((e, rnd.uniform(.03, .97), rnd.uniform(.5, 1.6)))   # edge, position, size
+    for e, t, size in clumps:
+        x0, y0, inward = on_edge(e, t)
+        r = 90 * size
+        mats += f"<ellipse cx='{x0:.0f}' cy='{y0:.0f}' rx='{r * rnd.uniform(.9, 1.6):.0f}' ry='{r * rnd.uniform(.9, 1.6):.0f}' fill='url(#mat)'/>"
+        for _ in range(int(rnd.uniform(2, 4.5) * size + 1)):
+            jitter = rnd.uniform(-.09, .09)
+            x, y, _ = on_edge(e, min(1, max(0, t + jitter)))
+            L = rnd.uniform(50, 250) * (.6 + .5 * size)
+            w = rnd.uniform(4, 8.5) * (.7 + .4 * size)
+            depth = rnd.choices(('soft', 'mid', 'crisp'), weights=(3, 3, 4))[0]
+            fern(x, y, inward + rnd.uniform(-55, 55), L, w, 2, rnd, layers[depth])
+    d = ("<radialGradient id='vg' cx='.5' cy='.5' r='.72'><stop offset='.58' stop-color='#bfe6ff' stop-opacity='0'/><stop offset='.85' stop-color='#bfe6ff' stop-opacity='.1'/><stop offset='1' stop-color='#e6f7ff' stop-opacity='.28'/></radialGradient>"
+         "<radialGradient id='mat'><stop offset='0' stop-color='#cfeaff' stop-opacity='.3'/><stop offset='.45' stop-color='#9fd2f2' stop-opacity='.12'/><stop offset='1' stop-color='#bfe6ff' stop-opacity='0'/></radialGradient>"
+         "<filter id='h' x='-.1' y='-.1' width='1.2' height='1.2'><feGaussianBlur stdDeviation='9'/></filter>"
+         "<filter id='so' x='-.1' y='-.1' width='1.2' height='1.2'><feGaussianBlur stdDeviation='3.2'/></filter>"
          "<filter id='m' x='-.1' y='-.1' width='1.2' height='1.2'><feGaussianBlur stdDeviation='1.6'/></filter>"
-         "<filter id='c' x='-.1' y='-.1' width='1.2' height='1.2'><feGaussianBlur stdDeviation='.55'/></filter>")
-    return uri(f"<svg {X} viewBox='0 0 {W} {H}' preserveAspectRatio='xMidYMid slice'><defs>{d}</defs>"
-               f"<rect width='{W}' height='{H}' fill='url(#vg)'/>"
-               f"<defs><g id='B'>{B}</g><g id='S'>{Sm}</g></defs>"
-               "<use href='#B' fill='#a9dcff' opacity='.42' filter='url(#h)'/>"       # cold glow around the frost
-               "<g fill='#d6f0ff' opacity='.32' filter='url(#m)'><use href='#B'/><use href='#S'/></g>"   # soft body
-               "<g fill='#f2fbff' opacity='.5' filter='url(#c)'><use href='#B'/><use href='#S'/></g>"
-               f"<g fill='#eef9ff' filter='url(#c)'>{rime}</g></svg>")
+         "<filter id='c' x='-.1' y='-.1' width='1.2' height='1.2'><feGaussianBlur stdDeviation='.8'/></filter>"
+         "<filter id='mb' x='-.5' y='-.5' width='2' height='2'><feGaussianBlur stdDeviation='14'/></filter>")
+    So, M, C = (''.join(layers[k]) for k in ('soft', 'mid', 'crisp'))
+    return uri(f"<svg {X} viewBox='0 0 {W} {H}' preserveAspectRatio='xMidYMid slice'><defs>{d}<g id='So'>{So}</g><g id='M'>{M}</g><g id='C'>{C}</g></defs>"
+               f"<rect width='{W}' height='{H}' fill='url(#vg)'/><g filter='url(#mb)'>{mats}</g>"
+               "<g fill='#7fbce8' opacity='.35' filter='url(#h)'><use href='#So'/><use href='#M'/><use href='#C'/></g>"   # cold glow
+               "<use href='#So' fill='#a9d6f5' opacity='.32' filter='url(#so)'/>"                                  # out-of-focus frost
+               "<use href='#M' fill='#c4e4fa' opacity='.38' filter='url(#m)'/>"
+               "<g fill='#e2f3ff' opacity='.5' filter='url(#c)'><use href='#C'/></g>"                               # crisp frost
+               "</svg>")
 
 def sheen():
     # Glass reflections: one broad soft band with a brighter leading edge, a faint second band, and a gentle
