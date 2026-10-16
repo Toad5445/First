@@ -21,7 +21,7 @@ const FONTS = {
   ghostlights: ['family=Cormorant+Garamond:wght@600;700', SATOSHI],
   ashfall: ['family=UnifrakturMaguntia', SATOSHI],
   monarch: 'family=Grenze+Gotisch:wght@600;700',
-  frostbound: 'family=Marcellus&family=Khand:wght@500;600;700'
+  frostbound: 'family=Cormorant+Unicase:wght@600;700&family=Khand:wght@500;600;700'
 };
 const loaded = new Set();
 export function loadFonts(theme) {
