@@ -560,7 +560,7 @@ select option{background:var(--opt-bg)}
 .scene .rings i{position:absolute;left:50%;top:50%;width:160px;height:160px;margin:-80px 0 0 -80px;border:2px solid var(--a);border-radius:50%;opacity:0;animation:ringout 2.2s ease-out infinite}
 .scene .rings i:nth-child(2){animation-delay:.7s}.scene .rings i:nth-child(3){animation-delay:1.4s}
 .scene .lbl{font-family:var(--f-mono);letter-spacing:.4em;color:var(--a);font-size:14px;text-transform:uppercase}
-.scene .huge{font-family:var(--f-head);font-weight:700;font-size:clamp(48px,14vw,110px);line-height:1.05;letter-spacing:.04em;text-shadow:var(--tglow),0 0 40px rgba(var(--a-rgb),.5);margin:12px 0}
+.scene .huge{font-family:var(--f-scene,var(--f-head));font-weight:700;font-size:clamp(48px,14vw,110px);line-height:1.05;letter-spacing:.04em;text-shadow:var(--tglow),0 0 40px rgba(var(--a-rgb),.5);margin:12px 0}
 .scene .subl{font-size:clamp(17px,4.6vw,20px);line-height:1.4;color:var(--text);max-width:420px;margin:0 auto}
 .scene .subl small{display:block;color:var(--dim);font-size:15px;margin-top:6px}
 .scene .tap{margin-top:26px;font-family:var(--f-mono);font-size:12px;letter-spacing:.2em;color:var(--dim);animation:blink 2s infinite}
@@ -860,8 +860,11 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 
 /* blackletter headings are unreadable in capitals: keep their natural case */
 :is([data-theme="ashfall"],[data-theme="monarch"]) :is(h2,h3,.tcard .tn){text-transform:none;letter-spacing:.02em}
-:is([data-theme="ashfall"],[data-theme="monarch"]) .scene .huge{text-transform:lowercase;letter-spacing:.01em}
-:is([data-theme="ashfall"],[data-theme="monarch"]) .scene .huge .w::first-letter{text-transform:uppercase}
+/* level-up and class-change scenes use a cleaner display face than the decorative headings */
+[data-theme="ghostlights"]{--f-scene:"Cormorant Garamond",Georgia,serif}
+[data-theme="ashfall"]{--f-scene:Boska,Cinzel,Georgia,serif}
+[data-theme="monarch"]{--f-scene:Cinzel,Georgia,serif}
+[data-theme="frostbound"]{--f-scene:Marcellus,Georgia,serif}
 
 /* ================= SCROLLING =================
    Desktop: themed native scrollbar. Touch devices (class set in app.js): the page scrolls inside
