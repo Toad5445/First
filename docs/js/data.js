@@ -121,7 +121,11 @@ export const THEMES = [
   ['bloodmoon', 'Blood Moon', 'A huge dim red moon rising behind everything.'],
   ['rift', 'Void Rift', 'A glowing tear in black space, slowly breathing.'],
   ['wraith', 'Wraith', 'Pale fog drifting over cold blue-black.'],
-  ['forge', 'Obsidian Forge', 'Volcanic glass, lava cracks, rising embers.']
+  ['forge', 'Obsidian Forge', 'Volcanic glass, lava cracks, rising embers.'],
+  ['ghostlights', 'Ghost Lights', 'A faint dark aurora of green and violet over black.'],
+  ['ashfall', 'Ashfall', 'Grey ash drifting down over charcoal. Blackletter and bone.'],
+  ['monarch', 'Monarch\'s Shadow', 'Violet smoke rising from below. Your army waits.'],
+  ['frostbound', 'Frostbound', 'Glacier ice rising from the dark, cold light glowing through it.']
 ];
 
 // Achievements. test(ctx) runs against compute() output plus helpers. Some are hidden until earned.

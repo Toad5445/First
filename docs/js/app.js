@@ -18,7 +18,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const roman = n => { const m = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]; let s = ''; if (n >= 40) return String(n); for (const [v, r] of m) while (n >= v) { s += r; n -= v; } return s; };
 const hms = s => { s = Math.max(0, Math.floor(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return h ? `${h}:${C.pad(m)}:${C.pad(x)}` : `${m}:${C.pad(x)}`; };
 const mins = s => { const m = Math.round(s / 60); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
-const NEW_THEMES = new Set(['eclipse', 'bloodmoon', 'rift', 'wraith', 'forge']);
+const NEW_THEMES = new Set(['ghostlights', 'ashfall', 'monarch', 'frostbound']);
 const CLOCK = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="9" r="5.5"/><path d="M8 6v3l2 1.5M6.5 1.5h3"/></svg>`;
 
 // ---------- state ----------

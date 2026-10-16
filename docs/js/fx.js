@@ -1,5 +1,7 @@
 // Sound, haptics, particles, full-screen scenes, and per-theme font loading.
 
+// Google Fonts query strings, or full stylesheet URLs (other free font CDNs). Self-hosted fonts live in app.css.
+const SATOSHI = 'https://api.fontshare.com/v2/css?f[]=satoshi@500,700&display=swap';
 const FONTS = {
   base: 'family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600',
   demon: 'family=Cinzel:wght@600;700',
@@ -15,17 +17,25 @@ const FONTS = {
   eclipse: 'family=Marcellus',
   bloodmoon: 'family=Cinzel:wght@600;700',
   rift: 'family=Exo+2:wght@500;600;700',
-  wraith: 'family=Cormorant+Garamond:wght@600;700'
+  wraith: 'family=Cormorant+Garamond:wght@600;700',
+  ghostlights: ['family=Cormorant+Garamond:wght@600;700', SATOSHI],
+  ashfall: ['family=UnifrakturMaguntia', SATOSHI],
+  monarch: 'family=Grenze+Gotisch:wght@600;700',
+  frostbound: 'family=Marcellus&family=Khand:wght@500;600;700'
 };
 const loaded = new Set();
 export function loadFonts(theme) {
   for (const k of ['base', theme]) {
-    if (!FONTS[k] || loaded.has(k)) continue;
-    loaded.add(k);
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = `https://fonts.googleapis.com/css2?${FONTS[k]}&display=swap`;
-    document.head.appendChild(l);
+    if (!FONTS[k]) continue;
+    for (const f of [].concat(FONTS[k])) {
+      const href = f.startsWith('https:') ? f : `https://fonts.googleapis.com/css2?${f}&display=swap`;
+      if (loaded.has(href)) continue;
+      loaded.add(href);
+      const l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = href;
+      document.head.appendChild(l);
+    }
   }
 }
 

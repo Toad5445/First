@@ -1,5 +1,5 @@
 // Offline support. Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'v3.4.2';
+const VERSION = 'v3.5.0';
 const SHELL = ['./', 'index.html', 'app.css', 'manifest.webmanifest', 'js/app.js', 'js/core.js', 'js/data.js', 'js/sync.js',
   'js/fx.js', 'js/charts.js', 'js/card.js', 'vendor/firebase.js', 'icons/icon-192-v2.png', 'icons/apple-touch-icon-v2.png'];
 
@@ -13,11 +13,13 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('message', e => { if (e.data === 'skip') self.skipWaiting(); });
 
+const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'api.fontshare.com', 'cdn.fontshare.com'];
+
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
-  // Google Fonts: cache after first load so themes look right offline
-  if (url.host === 'fonts.googleapis.com' || url.host === 'fonts.gstatic.com') {
+  // Fonts (Google, Fontshare, self-hosted): cache after first load so themes look right offline
+  if (FONT_HOSTS.includes(url.host) || (url.origin === location.origin && url.pathname.includes('/fonts/'))) {
     e.respondWith(caches.open('fonts').then(async c => {
       const hit = await c.match(e.request);
       if (hit) return hit;
