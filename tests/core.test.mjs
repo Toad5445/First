@@ -97,3 +97,16 @@ test('a tie for 3rd place offers jobs for every tied stat', () => {
   for (const k of ['VIT+CHA', 'VIT+WIS', 'STR+VIT', 'WIS+CHA', 'STR+CHA']) assert.ok(opts.includes(k), k);
   assert.deepEqual(C.jobOptions({ STR: 10, VIT: 60, WIS: 40, CHA: 55, WIL: 30, INT: 30 }).sort(), ['VIT+CHA', 'VIT+WIS', 'WIS+CHA'].sort());
 });
+
+test('an excused week keeps the weekly streak without adding to it', () => {
+  const NOWX = new Date('2026-10-29T12:00:00').getTime();   // Thu of the week starting Mon 10-26
+  const S = C.normalize({ v: 3, name: 'X', startDate: '2026-10-05', v3Since: '2026-10-05', settings: { weekStart: 1 },
+    quests: [{ id: 'b', name: 'Bouldering', stat: 'STR', diff: 'hard', type: 'weekly', target: 2, days: [], createdAt: '2026-10-05' }], days: {}, jobs: [], ach: {}, seen: {} }, NOWX);
+  const e = { xp: 35, pts: 3, stat: 'STR', name: 'Bouldering', k: 'weekly', tg: 2 };
+  for (const d of ['2026-10-06', '2026-10-08', '2026-10-13', '2026-10-15', '2026-10-21']) S.days[d] = { log: { b: e } };   // weeks of 10-05, 10-12 met; 10-19 only 1
+  const q = S.quests[0];
+  assert.equal(C.weeklyStreak(S, q, NOWX), 0);
+  S.wkx[C.weekKey(S, q, '2026-10-21')] = true;
+  assert.ok(C.isWeekExcused(S, q, '2026-10-19'));
+  assert.equal(C.weeklyStreak(S, q, NOWX), 2);
+});

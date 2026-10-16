@@ -90,6 +90,7 @@ export function normalize(s, now = Date.now()) {
   s.titleSel = s.titleSel || '';
   s.ach = isObj(s.ach) ? s.ach : {};
   s.seen = isObj(s.seen) ? s.seen : {};
+  s.wkx = isObj(s.wkx) ? s.wkx : {};
   s.quests.forEach(q => {
     q.type = q.type || 'daily';
     q.days = Array.isArray(q.days) ? q.days : [];
@@ -326,12 +327,18 @@ export function questStreak(S, q, now = Date.now()) {
   }
   return s;
 }
+// A weekly quest can be excused for a whole week (sick, gym closed...). An excused week that falls
+// short neither breaks the weekly streak nor adds to it. XP from sessions you did make is unaffected.
+export const weekKey = (S, q, anyDateInWeek) => weekStart(S, anyDateInWeek) + '|' + q.id;
+export const isWeekExcused = (S, q, anyDateInWeek) => !!(S.wkx && S.wkx[weekKey(S, q, anyDateInWeek)]);
 export function weeklyStreak(S, q, now = Date.now()) {
   let w = weekStart(S, today(S, now)), s = 0, guard = 0;
   const first = weekStart(S, q.createdAt < S.startDate ? S.startDate : q.createdAt);
   if (weekCount(S, q, w) < q.target) w = addDays(w, -7);
   while (w >= first && guard++ < 1000) {
-    if (weekCount(S, q, w) >= q.target) { s++; w = addDays(w, -7); } else break;
+    if (weekCount(S, q, w) >= q.target) s++;
+    else if (!isWeekExcused(S, q, w)) break;
+    w = addDays(w, -7);
   }
   return s;
 }

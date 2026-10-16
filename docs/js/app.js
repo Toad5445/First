@@ -293,15 +293,17 @@ function renderQuests() {
   const weekly = S.quests.filter(C.isWeekly);
   const wsd = (+S.settings.weekStart);
   const weeklyHtml = weekly.length ? `<div class="sub">Weekly quests</div>` + weekly.map(q => {
-    const c = C.weekCount(S, q, d), met = c >= q.target, ws = C.weeklyStreak(S, q);
+    const c = C.weekCount(S, q, d), met = c >= q.target, ws = C.weeklyStreak(S, q), wex = !met && C.isWeekExcused(S, q, d);
     let hint = '';
-    if (!done[q.id] && !met) {
+    if (wex) hint = 'Excused for this week. Your weekly streak is safe.';
+    else if (!done[q.id] && !met) {
       const left = q.target - c, daysLeft = 6 - (wd - wsd + 7) % 7;
       hint = q.days.includes(wd) ? 'Usual day. Good chance to knock one out.' : '';
       if (left > daysLeft + 1) hint = `Not enough days left for ${q.target}/${q.target} this week, but each one still gives XP.`;
       else if (left === daysLeft + 1) hint = `${left} left and ${daysLeft + 1} day${daysLeft ? 's' : ''} left this week. Every day counts now.`;
     }
-    return questRow(d, q, !!done[q.id], `${c}/${q.target}${met ? ' ✓' : ''}${ws ? `<br>▲${ws}w` : ''}`, hint);
+    const xBtn = met ? '' : ` <button class="del-x" data-act="wkx" data-id="${q.id}" title="${wex ? 'Undo excuse' : 'Excuse the rest of this week: the weekly streak won\'t break'}">${wex ? '↺' : '×'}</button>`;
+    return questRow(d, q, !!done[q.id], `${wex ? 'EXCUSED' : `${c}/${q.target}${met ? ' ✓' : ''}`}${ws ? `<br>▲${ws}w` : ''}${xBtn}`, hint, wex);
   }).join('') : '';
   const side = C.sideFor(S, d);
   const sideHtml = side.map(q => questRow(d, q, !!done[q.id], q.once ? `<button class="del-x" data-act="rmside" data-id="${q.id}" title="Remove">×</button>` : '')).join('');
@@ -395,6 +397,7 @@ function questsClick(e) {
     const act = a.dataset.act, id = a.dataset.id;
     if (act === 'day') { view.date = a.dataset.d === today() ? null : a.dataset.d; render(); return; }
     if (act === 'excuse') return excuse(d, id);
+    if (act === 'wkx') return excuseWeek(d, id);
     if (act === 'rmside') return removeOneOff(id, d);
     if (act === 'timer') return openTimer(d, id);
     if (act === 'amt') return adjustAmount(d, id, +a.dataset.v);
@@ -463,6 +466,15 @@ function excuse(d, id) {
   if (r.skip[id]) delete r.skip[id];
   else { r.skip[id] = true; toast(`Excused for the day: <b>${esc(q ? q.name : '')}</b><br><span style="color:var(--dim);font-size:14px">No XP, and it won't count against your streak.</span>`, '', 'System', true); }
   C.cleanDay(S, d); save(); render();
+}
+function excuseWeek(d, id) {
+  const q = byId()[id]; if (!q) return;
+  snapshot();
+  const k = C.weekKey(S, q, d);
+  S.wkx = Object.assign({}, S.wkx || {});
+  if (S.wkx[k]) delete S.wkx[k];
+  else { S.wkx[k] = true; toast(`Excused for this week: <b>${esc(q.name)}</b><br><span style="color:var(--dim);font-size:14px">Your weekly streak won't break. Sessions you do make still give XP.</span>`, '', 'System', true); }
+  save(); render();
 }
 function removeOneOff(id, d) {
   snapshot();
