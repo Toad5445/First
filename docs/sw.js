@@ -1,7 +1,7 @@
 // Offline support. Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'v3.5.2';
+const VERSION = 'v3.6.0';
 const SHELL = ['./', 'index.html', 'app.css', 'manifest.webmanifest', 'js/app.js', 'js/core.js', 'js/data.js', 'js/sync.js',
-  'js/fx.js', 'js/charts.js', 'js/card.js', 'vendor/firebase.js', 'icons/icon-192-v2.png', 'icons/apple-touch-icon-v2.png'];
+  'js/fx.js', 'js/charts.js', 'js/card.js', 'vendor/firebase.js', 'icons/icon-192-v2.png', 'icons/apple-touch-icon-v2.png', 'art/frost.svg', 'art/frost-wide.svg'];
 
 self.addEventListener('install', e => {
   // cache: 'reload' skips the browser's HTTP cache so an update never stores stale files

@@ -125,7 +125,7 @@ export const THEMES = [
   ['ghostlights', 'Ghost Lights', 'A faint dark aurora of green and violet over black.'],
   ['ashfall', 'Ashfall', 'Grey ash drifting down over charcoal. Blackletter and bone.'],
   ['monarch', 'Monarch\'s Shadow', 'Violet smoke rising from below. Your army waits.'],
-  ['frostbound', 'Frostbound', 'A crystal cavern. Faceted ice glowing from within.']
+  ['frostbound', 'Frostbound', 'Frost creeping across a frozen pane, light sliding over the glass.']
 ];
 
 // Achievements. test(ctx) runs against compute() output plus helpers. Some are hidden until earned.
