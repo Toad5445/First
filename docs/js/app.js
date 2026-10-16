@@ -355,11 +355,12 @@ function renderConstellation(d, quests, done) {
   // deterministic star positions per date so the shape stays put through the day
   let seed = [...d].reduce((a, c) => a * 31 + c.charCodeAt(0) >>> 0, 7);
   const rnd = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296;
-  const n = quests.length, W = 600, H = 70;
+  // draw at the panel's real width so stars stay round on wide screens (no stretching)
+  const n = quests.length, W = Math.max(240, Math.round($('constellation').clientWidth || 600)), H = 70;
   const pts = quests.map((q, i) => [30 + (i + 0.5) * (W - 60) / n + (rnd() - 0.5) * 30, 12 + rnd() * (H - 24), !!done[q.id], q.name]);
   let lines = '';
   for (let i = 1; i < n; i++) if (pts[i][2] && pts[i - 1][2]) lines += `<line x1="${pts[i - 1][0]}" y1="${pts[i - 1][1]}" x2="${pts[i][0]}" y2="${pts[i][1]}"/>`;
-  $('constellation').innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${lines}${pts.map(p => `<circle class="${p[2] ? 'on' : ''}" cx="${p[0]}" cy="${p[1]}" r="${p[2] ? 3.6 : 2.2}"><title>${esc(p[3])}</title></circle>`).join('')}</svg>`;
+  $('constellation').innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${lines}${pts.map(p => `<circle class="${p[2] ? 'on' : ''}" cx="${p[0]}" cy="${p[1]}" r="${p[2] ? 3.6 : 2.2}"><title>${esc(p[3])}</title></circle>`).join('')}</svg>`;
 }
 
 function renderJournal(d, keepText) {
