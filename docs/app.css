@@ -862,6 +862,8 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 :is([data-theme="ashfall"],[data-theme="monarch"]) :is(h2,h3,.tcard .tn){text-transform:none;letter-spacing:.02em}
 :is([data-theme="ashfall"],[data-theme="monarch"]) .scene .huge{text-transform:lowercase;letter-spacing:.01em}
 :is([data-theme="ashfall"],[data-theme="monarch"]) .scene .huge .w::first-letter{text-transform:uppercase}
+/* Cormorant Unicase defaults to old-style numbers ("12" sits at lowercase height): use full-height ones */
+[data-theme="frostbound"]{font-variant-numeric:lining-nums}
 /* Cantique's capitals run wide: smaller, tighter headings so they stay inside their panels */
 [data-theme="ghostlights"]{--h2-fs:17px;--pname-fs:25px;--hl-fs:32px}
 [data-theme="ghostlights"] :is(h2,h3,.tcard .tn){letter-spacing:.03em;line-height:1.6}
