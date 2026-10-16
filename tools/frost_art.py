@@ -21,7 +21,7 @@ def fern(x, y, ang, L, w, depth, rnd, out):
     out.append(f"<path d='M{' '.join(f'{p:.0f} {q:.0f}' for p, q in poly)}z'/>")
     if depth == 0: return
     for i in range(1, segs):
-        if rnd.random() > rnd.uniform(.3, .7): continue
+        if rnd.random() > rnd.uniform(.38, .78): continue
         t = i / segs; bl = L * (1 - t) * rnd.uniform(.25, .75)
         if bl < 14: continue
         da = math.degrees(math.atan2(pts[i+1][1] - pts[i][1], pts[i+1][0] - pts[i][0]))
@@ -44,7 +44,7 @@ def frost(seed=21):
         x0, y0, inward = on_edge(e, t)
         r = 90 * size
         mats += f"<ellipse cx='{x0:.0f}' cy='{y0:.0f}' rx='{r * rnd.uniform(.9, 1.6):.0f}' ry='{r * rnd.uniform(.9, 1.6):.0f}' fill='url(#mat)'/>"
-        for _ in range(int(rnd.uniform(2, 4.5) * size + 1)):
+        for _ in range(int(rnd.uniform(2.6, 5.5) * size + 1)):
             jitter = rnd.uniform(-.09, .09)
             x, y, _ = on_edge(e, min(1, max(0, t + jitter)))
             L = rnd.uniform(50, 250) * (.6 + .5 * size)
