@@ -325,7 +325,7 @@ a{color:var(--a)}
 /* constellation (Celestial theme) */
 .constellation{display:none;margin:-4px 0 12px}
 [data-theme="celestial"] .constellation{display:block}
-.constellation svg{width:100%;height:70px;display:block;overflow:visible}
+.constellation svg{width:100%;display:block;overflow:visible}
 
 /* stats */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;align-items:start}

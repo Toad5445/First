@@ -350,19 +350,28 @@ function renderQuests() {
   renderConstellation(d, schedQuests, done);
 }
 
+let lastConstellation = null;
+addEventListener('resize', () => {                 // redraw at the new width so the stars never scale out of shape
+  clearTimeout(renderConstellation.t);
+  renderConstellation.t = setTimeout(() => lastConstellation && renderConstellation(...lastConstellation), 150);
+});
 function renderConstellation(d, quests, done) {
+  lastConstellation = [d, quests, done];
   if (S.settings.theme !== 'celestial' || !quests.length) { $('constellation').innerHTML = ''; return; }
   // deterministic star positions per date so the shape stays put through the day
   let seed = [...d].reduce((a, c) => a * 31 + c.charCodeAt(0) >>> 0, 7);
   const rnd = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296;
   // draw at the panel's real width so stars stay round on wide screens (no stretching)
-  const n = quests.length, W = Math.max(240, Math.round($('constellation').clientWidth || 600)), H = 70;
-  // on wide screens keep the stars bunched in the middle instead of strung out across the whole panel
-  const span = Math.min(W - 60, n * 62), x0 = (W - span) / 2;
-  const pts = quests.map((q, i) => [x0 + (i + 0.5) * span / n + (rnd() - 0.5) * Math.min(30, span / n * 0.6), 12 + rnd() * (H - 24), !!done[q.id], q.name]);
+  const n = quests.length, W = Math.max(240, Math.round($('constellation').clientWidth || 600));
+  // keep the stars bunched in the middle, and give the field more height as it gets wider so the shape
+  // reads as a constellation rather than a flat strip
+  const span = Math.min(W - 60, n * 62), x0 = (W - span) / 2, H = Math.round(Math.min(130, Math.max(70, span * 0.26)));
+  // stars are lit left to right by how many quests are done, whichever quests they were
+  const k = quests.filter(q => done[q.id]).length;
+  const pts = quests.map((q, i) => [x0 + (i + 0.5) * span / n + (rnd() - 0.5) * Math.min(30, span / n * 0.6), 12 + rnd() * (H - 24), i < k]);
   let lines = '';
-  for (let i = 1; i < n; i++) if (pts[i][2] && pts[i - 1][2]) lines += `<line x1="${pts[i - 1][0]}" y1="${pts[i - 1][1]}" x2="${pts[i][0]}" y2="${pts[i][1]}"/>`;
-  $('constellation').innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${lines}${pts.map(p => `<circle class="${p[2] ? 'on' : ''}" cx="${p[0]}" cy="${p[1]}" r="${p[2] ? 3.6 : 2.2}"><title>${esc(p[3])}</title></circle>`).join('')}</svg>`;
+  for (let i = 1; i < k; i++) lines += `<line x1="${pts[i - 1][0]}" y1="${pts[i - 1][1]}" x2="${pts[i][0]}" y2="${pts[i][1]}"/>`;
+  $('constellation').innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="height:${H}px" aria-hidden="true"><title>${k} of ${n} quests done</title>${lines}${pts.map(p => `<circle class="${p[2] ? 'on' : ''}" cx="${p[0]}" cy="${p[1]}" r="${p[2] ? 3.6 : 2.2}"/>`).join('')}</svg>`;
 }
 
 function renderJournal(d, keepText) {
