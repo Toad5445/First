@@ -264,22 +264,26 @@ const restSave = () => { try { localStorage.setItem(REST_KEY, JSON.stringify(res
 const restLen = () => S.settings.restSec || 90;
 const restLeft = () => rest.end ? Math.max(0, (rest.end - Date.now()) / 1000) : rest.paused != null ? rest.paused : restLen();
 const mmss = t => { t = Math.ceil(t); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+const RING = 2 * Math.PI * 54;      // circumference of the timer ring (r = 54 in a 120 box)
+const ringOffset = () => (RING * (1 - ((rest.end || rest.paused != null) ? restLeft() / restLen() : 1))).toFixed(2);
 function restHTML() {
-  const run = !!rest.end, paused = rest.paused != null, left = restLeft(), frac = left / restLen();
+  const run = !!rest.end, paused = rest.paused != null, left = restLeft();
   return `<div class="rest ${run ? 'run' : ''} ${paused ? 'paused' : ''}" id="rest">
-    <div class="rest-fill" style="transform:scaleX(${run || paused ? frac.toFixed(4) : 1})"></div>
-    <span class="sys-label">Rest</span>${run || paused ? `<span class="rest-time" id="rest-time">${mmss(left)}</span>`
-      : `<input class="rest-time rest-input" id="rest-time" value="${mmss(left)}" inputmode="numeric" maxlength="5" aria-label="Rest length" title="Tap to type a length">`}
-    <span class="rest-btns">
-      ${run || paused ? `<button class="btn" data-rest="${run ? 'pause' : 'resume'}">${run ? 'Pause' : 'Resume'}</button><button class="btn" data-rest="reset">Reset</button>`
-        : `<button class="btn" data-rest="-15" aria-label="15 seconds less">−15s</button><button class="btn solid" data-rest="start">Start</button><button class="btn" data-rest="+15" aria-label="15 seconds more">+15s</button>`}
-    </span></div>`;
+    <div class="rest-dial">
+      <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rest-track" cx="60" cy="60" r="54"/>
+        <circle class="rest-ring" id="rest-ring" cx="60" cy="60" r="54" stroke-dasharray="${RING.toFixed(2)}" stroke-dashoffset="${ringOffset()}"/></svg>
+      <div class="rest-face"><span class="sys-label">Rest</span>${run || paused ? `<span class="rest-time" id="rest-time">${mmss(left)}</span>`
+        : `<input class="rest-time rest-input" id="rest-time" value="${mmss(left)}" inputmode="numeric" maxlength="5" aria-label="Rest length" title="Tap to type a length">`}</div>
+    </div>
+    <div class="rest-btns">
+      ${run || paused ? `<button class="btn solid" data-rest="${run ? 'pause' : 'resume'}">${run ? 'Pause' : 'Resume'}</button><button class="btn" data-rest="reset">Reset</button>`
+        : `<button class="btn solid" data-rest="start">Start</button><div class="rest-adj"><button class="btn" data-rest="-15" aria-label="15 seconds less">−15s</button><button class="btn" data-rest="+15" aria-label="15 seconds more">+15s</button></div>`}
+    </div></div>`;
 }
 function restPaint() {
   const el = $('rest'); if (!el) return;
-  const left = restLeft();
-  if (rest.end) $('rest-time').textContent = mmss(left);
-  el.querySelector('.rest-fill').style.transform = `scaleX(${(rest.end || rest.paused != null ? left / restLen() : 1).toFixed(4)})`;
+  if (rest.end) $('rest-time').textContent = mmss(restLeft());
+  $('rest-ring').setAttribute('stroke-dashoffset', ringOffset());
 }
 // "1:30" = 1 min 30 s; a plain number up to 10 means minutes ("2"), anything bigger means seconds ("75")
 function parseRest(v) {
