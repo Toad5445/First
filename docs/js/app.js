@@ -369,9 +369,9 @@ function renderWorkout() {
           <div class="box" data-all title="Mark all sets done"><i></i></div><div class="qname"><span class="qn">${esc(x.name)}</span>${isToday ? pips(r, total(x)) : ''}</div><span class="wo-amt">${esc(woAmount(x))}</span></div>`;
       return `<div class="quest wo-row wo-circuit ${isDone ? 'done' : ''} ${isToday ? '' : 'wo-plan'}" data-wid="${x.id}">
           <div class="box" data-all title="Mark all rounds done"><i></i></div>
-          <div class="qname"><span class="qn">${esc(x.name)}</span>
+          <div class="qname"><span class="qn">${esc(x.name)}</span>${isToday ? pips(r, total(x)) : ''}
             <span class="wo-moves">${x.moves.map(m => `<span><b>${esc(m.name)}</b><em>${esc(woAmount(m))}</em></span>`).join('')}</span></div>
-          <span class="wo-amt">${r}/${x.rounds || 1}<small>rounds</small></span></div>`;
+          <span class="wo-amt">${x.rounds || 1} rounds</span></div>`;
     }).join('') || '<div class="stat-note">No exercises yet. Tap Edit to add some.</div>';
   }
   p.innerHTML = `<div class="win"><div class="wo-head"><h2>Workout</h2><button class="btn ${view.woEdit ? 'solid' : ''}" id="wo-edit">${view.woEdit ? 'Done' : 'Edit'}</button></div>

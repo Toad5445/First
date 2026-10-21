@@ -904,7 +904,9 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 .wo-pips i.on{background:var(--a);box-shadow:0 0 6px rgba(var(--a-rgb),.6)}
 .quest.done .wo-pips i.on{background:var(--green);box-shadow:none}
 .wo-row .box[data-all]{cursor:pointer}
-.wo-moves{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.wo-moves{display:flex;flex-direction:column;gap:3px;margin-top:8px}
+.wo-circuit{align-items:flex-start}
+.wo-circuit .box,.wo-circuit .wo-amt{margin-top:2px}
 .wo-moves span{display:flex;gap:10px;font-size:14px;color:var(--dim)}
 .wo-moves b{font-weight:500;color:var(--text);opacity:.85}
 .wo-moves em{font-style:normal;font-family:var(--f-mono);font-size:12.5px;margin-left:auto;padding-right:6px;white-space:nowrap;flex:none}
