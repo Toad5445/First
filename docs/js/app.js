@@ -329,7 +329,10 @@ function renderWorkout() {
   }
   const key = view.woDay, list = S.workouts[key] || [], isToday = key === tk;
   const wo = (S.days[d] && S.days[d].wo) || {};
-  const doneOf = x => x.moves ? (wo[x.id] || 0) >= (x.rounds || 1) : !!wo[x.id];
+  // wo[id] counts sets done (rounds, for a circuit)
+  const total = x => x.moves ? (x.rounds || 1) : (x.sets || 1);
+  const doneOf = x => (wo[x.id] || 0) >= total(x);
+  const pips = (n, t) => `<span class="wo-pips">${Array.from({ length: t }, (_, k) => `<i class="${k < n ? 'on' : ''}"></i>`).join('')}</span>`;
   const nDone = isToday ? list.filter(doneOf).length : 0;
   const tabs = WORKOUT_DAYS.map(([k, n]) => `<button class="${k === key ? 'on' : ''}" data-wday="${k}">${n.slice(0, 3)}${k === tk ? '<i class="wo-today"></i>' : ''}</button>`).join('');
   const PER = ['', 'arm', 'leg', 'side'];
@@ -361,11 +364,11 @@ function renderWorkout() {
   } else {
     body = list.map(x => {
       const isDone = isToday && doneOf(x);
+      const r = isToday ? Math.min(wo[x.id] || 0, total(x)) : 0;
       if (!x.moves) return `<div class="quest wo-row ${isDone ? 'done' : ''} ${isToday ? '' : 'wo-plan'}" data-wid="${x.id}">
-          <div class="box"><i></i></div><div class="qname"><span class="qn">${esc(x.name)}</span></div><span class="wo-amt">${esc(woAmount(x))}</span></div>`;
-      const r = isToday ? Math.min(wo[x.id] || 0, x.rounds || 1) : 0;
+          <div class="box" data-all title="Mark all sets done"><i></i></div><div class="qname"><span class="qn">${esc(x.name)}</span>${isToday ? pips(r, total(x)) : ''}</div><span class="wo-amt">${esc(woAmount(x))}</span></div>`;
       return `<div class="quest wo-row wo-circuit ${isDone ? 'done' : ''} ${isToday ? '' : 'wo-plan'}" data-wid="${x.id}">
-          <div class="box"><i></i></div>
+          <div class="box" data-all title="Mark all rounds done"><i></i></div>
           <div class="qname"><span class="qn">${esc(x.name)}</span>
             <span class="wo-moves">${x.moves.map(m => `<span><b>${esc(m.name)}</b><em>${esc(woAmount(m))}</em></span>`).join('')}</span></div>
           <span class="wo-amt">${r}/${x.rounds || 1}<small>rounds</small></span></div>`;
@@ -415,15 +418,17 @@ function renderWorkout() {
     });
     return;
   }
-  // check off today's exercises; a circuit counts a round per tap, and a tap after the last round resets it
-  if (isToday) p.querySelectorAll('.wo-row').forEach(row => row.onclick = () => {
-    const x = list.find(e => e.id === row.dataset.wid); if (!x) return;
+  // tap a row to log one set (one round, for a circuit); tap the star to mark every set done, or clear it if
+  // it's already done. Tapping a finished row starts it over.
+  if (isToday) p.querySelectorAll('.wo-row').forEach(row => row.onclick = e => {
+    const x = list.find(q => q.id === row.dataset.wid); if (!x) return;
     const r = C.ensureDay(S, d); r.wo = Object.assign({}, r.wo);
-    if (x.moves) { const n = (r.wo[x.id] || 0) + 1; if (n > (x.rounds || 1)) delete r.wo[x.id]; else r.wo[x.id] = n; }
-    else if (r.wo[x.id]) delete r.wo[x.id]; else r.wo[x.id] = 1;
+    const was = r.wo[x.id] || 0, t = total(x);
+    const n = e.target.closest('[data-all]') ? (was >= t ? 0 : t) : (was >= t ? 0 : was + 1);
+    if (n) r.wo[x.id] = n; else delete r.wo[x.id];
     C.cleanDay(S, d); save();
-    const nowDone = (S.days[d] && S.days[d].wo && doneOf(x)) || false;
-    if (nowDone) { sfx('check'); buzz(); burst(row.querySelector('.box'), S.settings.theme); } else sfx('uncheck');
+    if (n >= t) { sfx('check'); buzz(); burst(row.querySelector('.box'), S.settings.theme); }
+    else if (n > was) { sfx('timer'); buzz(6); } else sfx('uncheck');
     renderWorkout();
   });
 }

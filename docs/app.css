@@ -899,6 +899,11 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 .wo-amt{font-family:var(--f-mono);font-size:14px;color:var(--text);white-space:nowrap;flex:none;text-align:right}
 .wo-amt small{display:block;font-size:11px;color:var(--dim);letter-spacing:.06em}
 .quest.done .wo-amt{color:var(--dim)}
+.wo-pips{display:flex;gap:5px;margin-top:7px}
+.wo-pips i{width:16px;height:4px;border-radius:2px;background:rgba(var(--a-rgb),.18)}
+.wo-pips i.on{background:var(--a);box-shadow:0 0 6px rgba(var(--a-rgb),.6)}
+.quest.done .wo-pips i.on{background:var(--green);box-shadow:none}
+.wo-row .box[data-all]{cursor:pointer}
 .wo-moves{display:flex;flex-direction:column;gap:3px;margin-top:6px}
 .wo-moves span{display:flex;gap:10px;font-size:14px;color:var(--dim)}
 .wo-moves b{font-weight:500;color:var(--text);opacity:.85}
