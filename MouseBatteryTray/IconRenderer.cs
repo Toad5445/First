@@ -39,7 +39,7 @@ namespace MouseBatteryTray
         };
 
         /// <param name="percent">Battery level 0-100, or null when no device is available.</param>
-        /// <param name="charging">Shows a bolt over a dimmed level; low-battery colours are dropped while charging.</param>
+        /// <param name="charging">Shows a bolt instead of the level bar; low-battery colours are dropped while charging.</param>
         public static Icon Render(int? percent, bool charging, int size, bool lightTaskbar)
         {
             Color color = lightTaskbar ? Color.Black : Color.White;
@@ -117,11 +117,14 @@ namespace MouseBatteryTray
             int barW = bodyW - 2 * inset;
             int barH = bodyH - 2 * inset;
             int level = percent > 0 ? Math.Max(1, (int)Math.Round(barW * percent / 100.0)) : 0;
-            // While charging the bar is dimmed so the bolt on top stays readable.
-            Fill(x0 + inset, y0 + inset, level, barH, charging ? (byte)95 : (byte)255);
 
-            if (charging)
+            if (!charging)
             {
+                Fill(x0 + inset, y0 + inset, level, barH, 255);
+            }
+            else
+            {
+                // The bolt replaces the bar; it's too small to share the space legibly. The level is in the tooltip.
                 int inner = bodyH - 2 * stroke;
                 string[] bolt = inner >= LargeBolt.Length ? LargeBolt : SmallBolt;
                 int scale = Math.Max(1, inner / bolt.Length);
@@ -138,6 +141,30 @@ namespace MouseBatteryTray
             return mask;
         }
 
+        /// <summary>
+        /// The size, in pixels, the taskbar currently draws tray icons at. Asks the taskbar for its own DPI so the
+        /// icon is drawn at exactly that size rather than being stretched (the older system metric can be stale
+        /// after the scale is changed, or wrong when monitors use different scales).
+        /// </summary>
+        public static int GetTrayIconSize()
+        {
+            try
+            {
+                IntPtr taskbar = FindWindowW("Shell_TrayWnd", null);
+                uint dpi = taskbar != IntPtr.Zero ? GetDpiForWindow(taskbar) : 0;
+                if (dpi == 0)
+                    dpi = GetDpiForSystem();
+                int size = GetSystemMetricsForDpi(SM_CXSMICON, dpi);
+                if (size > 0)
+                    return size;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                // Windows 10 before 1607.
+            }
+            return System.Windows.Forms.SystemInformation.SmallIconSize.Width;
+        }
+
         /// <summary>True when the taskbar uses the light theme (so icons should be dark).</summary>
         public static bool IsLightTaskbar()
         {
@@ -152,7 +179,21 @@ namespace MouseBatteryTray
             }
         }
 
+        private const int SM_CXSMICON = 49;
+
         [DllImport("user32.dll")]
         private static extern bool DestroyIcon(IntPtr hIcon);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr FindWindowW(string className, string windowName);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetDpiForWindow(IntPtr hwnd);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetDpiForSystem();
+
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetricsForDpi(int index, uint dpi);
     }
 }

@@ -153,7 +153,7 @@ namespace MouseBatteryTray
 
         private void UpdateIcon()
         {
-            int size = SystemInformation.SmallIconSize.Width;
+            int size = IconRenderer.GetTrayIconSize();
             Icon old = _icon;
             _icon = IconRenderer.Render(_current?.Percent, _charging, size, IconRenderer.IsLightTaskbar());
             _tray.Icon = _icon;
