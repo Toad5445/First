@@ -256,6 +256,52 @@ function perSet(x) {
   const r = String(x.reps).split(',').map(v => v.trim()).filter(Boolean);
   return Array.from({ length: x.sets }, (_, k) => r[k] || r[r.length - 1] || '10');
 }
+// Rest timer between sets. The end time is kept in localStorage so the countdown survives switching tabs,
+// reloads and the app going to the background (it just can't alert while the phone is locked).
+const REST_KEY = 'the-system-rest';
+let rest = (() => { try { return JSON.parse(localStorage.getItem(REST_KEY)) || {}; } catch (e) { return {}; } })();
+const restSave = () => { try { localStorage.setItem(REST_KEY, JSON.stringify(rest)); } catch (e) { /* optional */ } };
+const restLen = () => S.settings.restSec || 90;
+const restLeft = () => rest.end ? Math.max(0, (rest.end - Date.now()) / 1000) : rest.paused != null ? rest.paused : restLen();
+const mmss = t => { t = Math.ceil(t); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+function restHTML() {
+  const run = !!rest.end, paused = rest.paused != null, left = restLeft(), frac = left / restLen();
+  return `<div class="rest ${run ? 'run' : ''} ${paused ? 'paused' : ''}" id="rest">
+    <div class="rest-fill" style="transform:scaleX(${run || paused ? frac.toFixed(4) : 1})"></div>
+    <span class="sys-label">Rest</span><span class="rest-time" id="rest-time">${mmss(left)}</span>
+    <span class="rest-btns">
+      ${run || paused ? `<button class="btn" data-rest="${run ? 'pause' : 'resume'}">${run ? 'Pause' : 'Resume'}</button><button class="btn" data-rest="reset">Reset</button>`
+        : `<button class="btn" data-rest="-15" aria-label="15 seconds less">−15s</button><button class="btn solid" data-rest="start">Start</button><button class="btn" data-rest="+15" aria-label="15 seconds more">+15s</button>`}
+    </span></div>`;
+}
+function restPaint() {
+  const el = $('rest'); if (!el) return;
+  const left = restLeft();
+  $('rest-time').textContent = mmss(left);
+  el.querySelector('.rest-fill').style.transform = `scaleX(${(rest.end || rest.paused != null ? left / restLen() : 1).toFixed(4)})`;
+}
+function restBind() {
+  const el = $('rest'); if (!el) return;
+  el.querySelectorAll('[data-rest]').forEach(b => b.onclick = () => {
+    const a = b.dataset.rest;
+    if (a === 'start') { rest = { end: Date.now() + restLen() * 1000 }; sfx('timer'); }
+    else if (a === 'pause') rest = { paused: restLeft() };
+    else if (a === 'resume') rest = { end: Date.now() + rest.paused * 1000 };
+    else if (a === 'reset') rest = {};
+    else { S.settings.restSec = Math.min(600, Math.max(15, restLen() + +a)); save(); }
+    restSave(); el.outerHTML = restHTML(); restBind();
+  });
+}
+setInterval(() => {
+  if (!rest.end) return;
+  if (Date.now() >= rest.end) {
+    rest = {}; restSave();
+    sfx('goal'); buzz(200); setTimeout(() => buzz(200), 350);
+    toast('Rest is over. Next set.', 'gold', 'Rest');
+    const el = $('rest'); if (el) { el.outerHTML = restHTML(); restBind(); }
+  } else restPaint();
+}, 250);
+
 function renderWorkout() {
   const p = $('pane-workout'), d = today(), tk = todayKey();
   if (!view.woDay || !S.workouts[view.woDay]) {
@@ -309,10 +355,12 @@ function renderWorkout() {
   }
   p.innerHTML = `<div class="win"><div class="wo-head"><h2>Workout</h2><button class="btn ${view.woEdit ? 'solid' : ''}" id="wo-edit">${view.woEdit ? 'Done' : 'Edit'}</button></div>
     <div class="subtabs">${tabs}</div>
+    ${view.woEdit ? '' : restHTML()}
     <div class="progress-note">${isToday ? `Today · <b>${nDone} / ${list.length}</b> done` : `${WORKOUT_DAYS.find(w => w[0] === key)[1]}'s plan`}</div>
     <div class="wo-list">${body}</div></div>`;
   p.querySelectorAll('[data-wday]').forEach(b => b.onclick = () => { view.woDay = b.dataset.wday; renderWorkout(); });
   $('wo-edit').onclick = () => { view.woEdit = !view.woEdit; renderWorkout(); };
+  restBind();
   if (view.woEdit) {
     const item = el => { const x = list[+el.dataset.i]; return el.dataset.j != null ? x.moves[+el.dataset.j] : x; };
     p.querySelectorAll('[data-f]').forEach(el => el.onchange = () => {

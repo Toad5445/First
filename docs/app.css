@@ -875,6 +875,16 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 .wo-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .wo-head h2{margin-bottom:10px}
 .wo-list{margin-top:12px}
+.rest{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 14px;margin:4px 0 14px;
+  border:1px solid var(--win-border);background:rgba(var(--a-rgb),.04)}
+.rest-fill{position:absolute;inset:0;transform-origin:left;background:rgba(var(--a-rgb),.13);pointer-events:none;transition:transform .25s linear}
+.rest>*:not(.rest-fill){position:relative}
+.rest .sys-label{font-size:11px}
+.rest-time{font-family:var(--f-mono);font-size:30px;font-weight:600;letter-spacing:.04em;min-width:90px;color:var(--text);font-variant-numeric:tabular-nums}
+.rest.run .rest-time{color:var(--a);text-shadow:var(--tglow)}
+.rest.paused .rest-time{opacity:.6}
+.rest-btns{display:flex;gap:8px;margin-left:auto}
+.rest-btns .btn{padding:6px 12px;font-size:13px}
 .wo-row{cursor:pointer}
 .wo-row.wo-plan{cursor:default}
 .wo-row.wo-plan .box{opacity:.45}

@@ -40,7 +40,7 @@ export function goalFromName(name) {
 }
 
 // ---------- state ----------
-export const defaultSettings = () => ({ rule: 'allButOne', dayStart: 4, theme: 'system', weekStart: 1, sound: true, fx: true, haptics: true });
+export const defaultSettings = () => ({ rule: 'allButOne', dayStart: 4, theme: 'system', weekStart: 1, sound: true, fx: true, haptics: true, restSec: 90 });
 
 export function defaultState(now = Date.now()) {
   const t = logicalToday(4, now);
