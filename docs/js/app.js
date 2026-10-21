@@ -268,7 +268,8 @@ function restHTML() {
   const run = !!rest.end, paused = rest.paused != null, left = restLeft(), frac = left / restLen();
   return `<div class="rest ${run ? 'run' : ''} ${paused ? 'paused' : ''}" id="rest">
     <div class="rest-fill" style="transform:scaleX(${run || paused ? frac.toFixed(4) : 1})"></div>
-    <span class="sys-label">Rest</span><span class="rest-time" id="rest-time">${mmss(left)}</span>
+    <span class="sys-label">Rest</span>${run || paused ? `<span class="rest-time" id="rest-time">${mmss(left)}</span>`
+      : `<input class="rest-time rest-input" id="rest-time" value="${mmss(left)}" inputmode="numeric" maxlength="5" aria-label="Rest length" title="Tap to type a length">`}
     <span class="rest-btns">
       ${run || paused ? `<button class="btn" data-rest="${run ? 'pause' : 'resume'}">${run ? 'Pause' : 'Resume'}</button><button class="btn" data-rest="reset">Reset</button>`
         : `<button class="btn" data-rest="-15" aria-label="15 seconds less">−15s</button><button class="btn solid" data-rest="start">Start</button><button class="btn" data-rest="+15" aria-label="15 seconds more">+15s</button>`}
@@ -277,18 +278,31 @@ function restHTML() {
 function restPaint() {
   const el = $('rest'); if (!el) return;
   const left = restLeft();
-  $('rest-time').textContent = mmss(left);
+  if (rest.end) $('rest-time').textContent = mmss(left);
   el.querySelector('.rest-fill').style.transform = `scaleX(${(rest.end || rest.paused != null ? left / restLen() : 1).toFixed(4)})`;
+}
+// "1:30" = 1 min 30 s; a plain number up to 10 means minutes ("2"), anything bigger means seconds ("75")
+function parseRest(v) {
+  v = String(v).trim();
+  const m = v.match(/^(\d{1,2}):(\d{1,2})$/);
+  const sec = m ? +m[1] * 60 + +m[2] : /^\d+$/.test(v) ? (+v <= 10 ? +v * 60 : +v) : NaN;
+  return isNaN(sec) ? null : Math.min(600, Math.max(5, sec));
 }
 function restBind() {
   const el = $('rest'); if (!el) return;
+  const inp = el.querySelector('.rest-input');
+  if (inp) {
+    inp.onfocus = () => inp.select();
+    inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
+    inp.onchange = () => { const v = parseRest(inp.value); if (v) { S.settings.restSec = v; save(); } inp.value = mmss(restLen()); };
+  }
   el.querySelectorAll('[data-rest]').forEach(b => b.onclick = () => {
     const a = b.dataset.rest;
     if (a === 'start') { rest = { end: Date.now() + restLen() * 1000 }; sfx('timer'); }
     else if (a === 'pause') rest = { paused: restLeft() };
     else if (a === 'resume') rest = { end: Date.now() + rest.paused * 1000 };
     else if (a === 'reset') rest = {};
-    else { S.settings.restSec = Math.min(600, Math.max(15, restLen() + +a)); save(); }
+    else { S.settings.restSec = Math.min(600, Math.max(5, restLen() + +a)); save(); }
     restSave(); el.outerHTML = restHTML(); restBind();
   });
 }

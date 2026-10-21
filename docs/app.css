@@ -881,6 +881,8 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 .rest>*:not(.rest-fill){position:relative}
 .rest .sys-label{font-size:11px}
 .rest-time{font-family:var(--f-mono);font-size:30px;font-weight:600;letter-spacing:.04em;min-width:90px;color:var(--text);font-variant-numeric:tabular-nums}
+.rest-input{width:110px;background:transparent;border:0;border-bottom:1px dashed var(--win-border);padding:0 2px;outline:none;cursor:text}
+.rest-input:focus{border-bottom-color:var(--a)}
 .rest.run .rest-time{color:var(--a);text-shadow:var(--tglow)}
 .rest.paused .rest-time{opacity:.6}
 .rest-btns{display:flex;gap:8px;margin-left:auto}
