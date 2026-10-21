@@ -5,13 +5,19 @@ using System.Text;
 
 namespace MouseBatteryTray
 {
-    /// <summary>A Bluetooth device that reports a battery level to Windows.</summary>
+    /// <summary>A device that reports a battery level.</summary>
     internal sealed class BatteryDevice
     {
         public string InstanceId;
         public string Name;
         public int Percent;
         public bool IsMouse;
+
+        /// <summary>Reported by the device itself, or null when unknown (Bluetooth) and it has to be guessed.</summary>
+        public bool? Charging;
+
+        /// <summary>The device isn't answering right now (e.g. asleep); Percent is the last reading.</summary>
+        public bool Asleep;
     }
 
     /// <summary>

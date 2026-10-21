@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
@@ -27,6 +28,9 @@ namespace MouseBatteryTray
         private bool _charging;
         private Icon _icon;
         private bool _lowWarningShown;
+        private bool _refreshing;
+        private bool _disposed;
+        private readonly TaskScheduler _ui;
 
         public TrayApp()
         {
@@ -43,6 +47,9 @@ namespace MouseBatteryTray
             _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add(new ToolStripMenuItem("Exit", null, (s, e) => ExitThread()));
             _menu.Opening += (s, e) => BuildMenu();
+
+            // Creating the menu installed the WinForms synchronization context; results come back through it.
+            _ui = TaskScheduler.FromCurrentSynchronizationContext();
 
             _tray = new NotifyIcon { ContextMenuStrip = _menu, Visible = true };
             _tray.MouseClick += (s, e) =>
@@ -64,22 +71,41 @@ namespace MouseBatteryTray
 
         private void OnSystemChanged(object sender, EventArgs e) => UpdateIcon();
 
+        /// <summary>Reads all devices on a background thread (talking to a receiver can take a moment).</summary>
         private void Refresh()
         {
-            try
-            {
-                _devices = BatteryReader.GetDevices();
-            }
-            catch
-            {
-                _devices = new List<BatteryDevice>();
-            }
+            if (_refreshing)
+                return;
+            _refreshing = true;
 
-            foreach (BatteryDevice device in _devices)
-                TrackCharging(device);
+            Task.Run(() =>
+            {
+                var devices = new List<BatteryDevice>();
+                try { devices.AddRange(LogitechReader.GetDevices()); } catch { }
+                try { devices.AddRange(BatteryReader.GetDevices()); } catch { }
+                // Mice first, and devices that are answering before ones showing an old reading.
+                devices.Sort((a, b) => a.IsMouse != b.IsMouse ? (a.IsMouse ? -1 : 1) : a.Asleep.CompareTo(b.Asleep));
+                return devices;
+            }).ContinueWith(t =>
+            {
+                _refreshing = false;
+                if (_disposed)
+                    return;
 
+                _devices = t.Result;
+                foreach (BatteryDevice device in _devices)
+                {
+                    if (device.Charging == null && !device.Asleep)
+                        TrackCharging(device);
+                }
+                ShowCurrent();
+            }, _ui);
+        }
+
+        private void ShowCurrent()
+        {
             _current = PickDevice(_devices);
-            _charging = _current != null && IsCharging(_current);
+            _charging = _current != null && !_current.Asleep && (_current.Charging ?? IsCharging(_current));
             UpdateIcon();
             CheckLowBattery();
         }
@@ -134,11 +160,16 @@ namespace MouseBatteryTray
             old?.Dispose();
 
             string text = _current != null
-                ? $"{_current.Name}: {_current.Percent}%{(_charging ? " (charging)" : "")}"
-                : "Mouse battery: no Bluetooth mouse found";
+                ? $"{_current.Name}: {_current.Percent}%{Suffix(" (", ")")}"
+                : "Mouse battery: no mouse found";
             // NotifyIcon tooltips are limited to 63 characters.
             _tray.Text = text.Length > 63 ? text.Substring(0, 60) + "..." : text;
         }
+
+        private string Suffix(string before, string after) =>
+            _charging ? before + "charging" + after
+            : _current != null && _current.Asleep ? before + "asleep, last reading" + after
+            : "";
 
         private void CheckLowBattery()
         {
@@ -159,7 +190,7 @@ namespace MouseBatteryTray
 
         private void BuildMenu()
         {
-            _statusItem.Text = _current != null ? $"{_current.Name} — {_current.Percent}%{(_charging ? ", charging" : "")}" : "No Bluetooth mouse found";
+            _statusItem.Text = _current != null ? $"{_current.Name} — {_current.Percent}%{Suffix(", ", "")}" : "No mouse found";
             _startupItem.Checked = Settings.StartWithWindows;
 
             string selected = Settings.SelectedDevice;
@@ -188,7 +219,7 @@ namespace MouseBatteryTray
         {
             Settings.SelectedDevice = instanceId;
             _lowWarningShown = false;
-            Refresh();
+            ShowCurrent();
         }
 
         private void ToggleStartup()
@@ -214,6 +245,7 @@ namespace MouseBatteryTray
         {
             if (disposing)
             {
+                _disposed = true;
                 SystemEvents.UserPreferenceChanged -= OnSystemChanged;
                 SystemEvents.DisplaySettingsChanged -= OnSystemChanged;
                 _timer.Dispose();
