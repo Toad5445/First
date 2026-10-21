@@ -11,6 +11,9 @@ namespace MouseBatteryTray
     {
         private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(60);
 
+        // Some mice report in 5-10% steps, so allow a long gap between rises before deciding charging stopped.
+        private static readonly TimeSpan ChargingTimeout = TimeSpan.FromMinutes(30);
+
         private readonly NotifyIcon _tray;
         private readonly ContextMenuStrip _menu;
         private readonly ToolStripMenuItem _statusItem;
@@ -19,7 +22,9 @@ namespace MouseBatteryTray
         private readonly Timer _timer;
 
         private List<BatteryDevice> _devices = new List<BatteryDevice>();
+        private readonly Dictionary<string, ChargeState> _chargeStates = new Dictionary<string, ChargeState>(StringComparer.OrdinalIgnoreCase);
         private BatteryDevice _current;
+        private bool _charging;
         private Icon _icon;
         private bool _lowWarningShown;
 
@@ -70,10 +75,44 @@ namespace MouseBatteryTray
                 _devices = new List<BatteryDevice>();
             }
 
+            foreach (BatteryDevice device in _devices)
+                TrackCharging(device);
+
             _current = PickDevice(_devices);
+            _charging = _current != null && IsCharging(_current);
             UpdateIcon();
             CheckLowBattery();
         }
+
+        /// <summary>
+        /// Windows doesn't report whether a Bluetooth mouse is charging, only its level,
+        /// so treat a rising level as charging until it drops or stops rising for a while.
+        /// </summary>
+        private void TrackCharging(BatteryDevice device)
+        {
+            string key = device.InstanceId ?? device.Name;
+            DateTime now = DateTime.UtcNow;
+
+            if (!_chargeStates.TryGetValue(key, out ChargeState state))
+            {
+                _chargeStates[key] = new ChargeState { Percent = device.Percent };
+                return;
+            }
+
+            if (device.Percent > state.Percent)
+            {
+                state.Charging = true;
+                state.LastRise = now;
+            }
+            else if (device.Percent < state.Percent || now - state.LastRise > ChargingTimeout)
+            {
+                state.Charging = false;
+            }
+            state.Percent = device.Percent;
+        }
+
+        private bool IsCharging(BatteryDevice device) =>
+            _chargeStates.TryGetValue(device.InstanceId ?? device.Name, out ChargeState state) && state.Charging;
 
         private static BatteryDevice PickDevice(List<BatteryDevice> devices)
         {
@@ -90,12 +129,12 @@ namespace MouseBatteryTray
         {
             int size = SystemInformation.SmallIconSize.Width;
             Icon old = _icon;
-            _icon = IconRenderer.Render(_current?.Percent, size, IconRenderer.IsLightTaskbar());
+            _icon = IconRenderer.Render(_current?.Percent, _charging, size, IconRenderer.IsLightTaskbar());
             _tray.Icon = _icon;
             old?.Dispose();
 
             string text = _current != null
-                ? $"{_current.Name}: {_current.Percent}%"
+                ? $"{_current.Name}: {_current.Percent}%{(_charging ? " (charging)" : "")}"
                 : "Mouse battery: no Bluetooth mouse found";
             // NotifyIcon tooltips are limited to 63 characters.
             _tray.Text = text.Length > 63 ? text.Substring(0, 60) + "..." : text;
@@ -106,7 +145,7 @@ namespace MouseBatteryTray
             if (_current == null)
                 return;
 
-            if (_current.Percent > IconRenderer.CriticalThreshold + 5)
+            if (_charging || _current.Percent > IconRenderer.CriticalThreshold + 5)
             {
                 _lowWarningShown = false;
             }
@@ -120,7 +159,7 @@ namespace MouseBatteryTray
 
         private void BuildMenu()
         {
-            _statusItem.Text = _current != null ? $"{_current.Name} — {_current.Percent}%" : "No Bluetooth mouse found";
+            _statusItem.Text = _current != null ? $"{_current.Name} — {_current.Percent}%{(_charging ? ", charging" : "")}" : "No Bluetooth mouse found";
             _startupItem.Checked = Settings.StartWithWindows;
 
             string selected = Settings.SelectedDevice;
@@ -162,6 +201,13 @@ namespace MouseBatteryTray
             {
                 MessageBox.Show("Could not change the startup setting:\n" + ex.Message, "Mouse Battery", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private sealed class ChargeState
+        {
+            public int Percent;
+            public bool Charging;
+            public DateTime LastRise;
         }
 
         protected override void Dispose(bool disposing)

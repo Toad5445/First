@@ -5,6 +5,10 @@ drawn in the same flat style as the built-in Windows 11 tray icons.
 
 - The icon fills up according to the battery level; hover it to see the exact percentage.
 - **≤ 20%** the icon turns amber, **≤ 10%** it turns red and you get a one-time "battery low" notification.
+- While charging, a small lightning bolt appears on the icon. Windows doesn't report charging for Bluetooth mice,
+  so this is detected from the level rising; it can take a few minutes to show up and clears once the level
+  stops rising for 30 minutes. Mice that switch to a wired USB connection while plugged in may disappear
+  from Bluetooth (icon fades) until unplugged.
 - Follows light/dark taskbar and display scaling automatically.
 - Starts with Windows (toggle in the right-click menu).
 - Right-click → **Device** to pick a specific device if it didn't pick the right one automatically.

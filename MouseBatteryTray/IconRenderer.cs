@@ -16,13 +16,18 @@ namespace MouseBatteryTray
         public const int CriticalThreshold = 10;
 
         /// <param name="percent">Battery level 0-100, or null when no device is available.</param>
-        public static Icon Render(int? percent, int size, bool lightTaskbar)
+        /// <param name="charging">Overlays a lightning bolt; low-battery colours are dropped while charging.</param>
+        public static Icon Render(int? percent, bool charging, int size, bool lightTaskbar)
         {
             Color glyph = lightTaskbar ? Color.Black : Color.White;
             Color fill = glyph;
             if (percent == null)
             {
                 glyph = fill = Color.FromArgb(110, glyph);
+            }
+            else if (charging)
+            {
+                // Keep the normal colour; the bolt is the indication.
             }
             else if (percent <= CriticalThreshold)
             {
@@ -76,6 +81,9 @@ namespace MouseBatteryTray
                         using (var brush = new SolidBrush(fill))
                             g.FillRectangle(brush, x0 + inset, y0 + inset, w, innerH);
                     }
+
+                    if (charging)
+                        DrawBolt(g, glyph, u, x0 + bodyW - 1.5f * u, y0 + bodyH - 1f * u);
                 }
 
                 IntPtr hIcon = bmp.GetHicon();
@@ -103,6 +111,38 @@ namespace MouseBatteryTray
             catch
             {
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Small lightning bolt badge on the battery's bottom-right corner, with a transparent outline
+        /// cut around it so it stays readable on top of the outline while the fill level stays visible.
+        /// </summary>
+        private static void DrawBolt(Graphics g, Color color, float u, float cx, float cy)
+        {
+            // Bolt shape on the 16px grid, relative to its centre, shrunk to badge size.
+            float scale = 0.62f * u;
+            var points = new[]
+            {
+                new PointF(1.0f, -5.5f), new PointF(-3.0f, 0.5f), new PointF(-0.2f, 0.5f),
+                new PointF(-1.0f, 5.5f), new PointF(3.0f, -0.5f), new PointF(0.2f, -0.5f),
+            };
+            for (int i = 0; i < points.Length; i++)
+                points[i] = new PointF(cx + points[i].X * scale, cy + points[i].Y * scale);
+
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            using (var path = new GraphicsPath())
+            {
+                path.AddPolygon(points);
+
+                CompositingMode previous = g.CompositingMode;
+                g.CompositingMode = CompositingMode.SourceCopy;
+                using (var knockout = new Pen(Color.Transparent, 2f * u) { LineJoin = LineJoin.Round })
+                    g.DrawPath(knockout, path);
+                g.CompositingMode = previous;
+
+                using (var brush = new SolidBrush(color))
+                    g.FillPath(brush, path);
             }
         }
 
