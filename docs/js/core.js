@@ -1,7 +1,7 @@
 // Game rules and state. No DOM here, so it can be unit-tested in Node.
 import {
   STATS, STAT_KEYS, STAT_KEYWORDS, DIFF, SKILL_REQ, MASTERY_STEP, SKILL_BONUS, MASTERY_BONUS,
-  TITLES, RANKS, JOBS, JOB_TIERS, BUFFS, JOURNAL_XP, ACHIEVEMENTS, THEMES
+  TITLES, RANKS, JOBS, JOB_TIERS, BUFFS, JOURNAL_XP, ACHIEVEMENTS, THEMES, DEFAULT_WORKOUTS
 } from './data.js';
 
 export const VERSION = 3;
@@ -91,6 +91,11 @@ export function normalize(s, now = Date.now()) {
   s.ach = isObj(s.ach) ? s.ach : {};
   s.seen = isObj(s.seen) ? s.seen : {};
   s.wkx = isObj(s.wkx) ? s.wkx : {};
+  // workout plan: seeded once from the default routine, then the player's own edits
+  if (!isObj(s.workouts)) {
+    s.workouts = JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
+    for (const d in s.workouts) s.workouts[d].forEach(x => { x.id = uid(); (x.moves || []).forEach(m => { m.id = uid(); }); });
+  }
   s.quests.forEach(q => {
     q.type = q.type || 'daily';
     q.days = Array.isArray(q.days) ? q.days : [];
@@ -108,7 +113,7 @@ export function normalize(s, now = Date.now()) {
 // Remove empty sections/days so state compares cleanly across devices.
 export function cleanDay(s, d) {
   const r = s.days[d]; if (!r) return;
-  for (const k of ['log', 'skip', 't']) if (r[k] && !Object.keys(r[k]).length) delete r[k];
+  for (const k of ['log', 'skip', 't', 'wo']) if (r[k] && !Object.keys(r[k]).length) delete r[k];
   if (r.j && !r.j.text && !r.j.mood && !r.j.energy) delete r.j;
   if (!r.inn) delete r.inn;
   if (!Object.keys(r).length) delete s.days[d];

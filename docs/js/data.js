@@ -164,3 +164,34 @@ export const ACHIEVEMENTS = [
   { id: 'nightowl', name: 'Night Shift', desc: 'Check off a quest after midnight, before the day resets.', hidden: true, test: c => c.nightOwl },
   { id: 'overpowered', name: 'Overpowered', desc: 'Have 3 buffs active at once.', hidden: true, test: c => c.maxBuffs >= 3, title: 'The Overpowered' }
 ];
+
+// Workout plan the Workout tab starts with (all of it editable in the app). An exercise is
+// {name, sets, reps, per}; reps can be a count ("10"), a time ("25s"), per-set counts ("9, 8, 8") or a
+// word ("attempts"). A circuit is one task done for some rounds: {name, rounds, moves: [{name, reps, per}]}.
+export const WORKOUT_DAYS = [['mon', 'Monday'], ['wed', 'Wednesday'], ['fri', 'Friday']];
+export const DEFAULT_WORKOUTS = {
+  mon: [
+    { name: 'Wall Handstand Holds', sets: 3, reps: 'attempts' },
+    { name: 'Chin-Ups (+15 lb)', sets: 3, reps: '9, 8, 8' },
+    { name: 'Feet-Elevated Rows (Neutral Grip)', sets: 3, reps: '10' },
+    { name: 'Static Lunges', sets: 3, reps: '11', per: 'leg' },
+    { name: 'Weighted V-Ups (5 lb)', sets: 3, reps: '12' }
+  ],
+  wed: [
+    { name: 'Single-Arm Dumbbell Curls', sets: 3, reps: '10', per: 'arm' },
+    { name: 'Single-Arm Hammer Curls', sets: 3, reps: '10', per: 'arm' },
+    { name: 'Isometric Hold (90°)', sets: 3, reps: '25s', per: 'arm' },
+    { name: 'Abs Circuit', rounds: 3, moves: [
+      { name: 'Leg Raises', reps: '12' },
+      { name: 'Reverse Crunches', reps: '10' },
+      { name: 'Side Plank Reach-Throughs', reps: '10', per: 'side' }
+    ] }
+  ],
+  fri: [
+    { name: 'Pike Push-Ups', sets: 3, reps: '11' },
+    { name: 'Dips', sets: 3, reps: '9' },
+    { name: 'Diamond Push-Ups', sets: 3, reps: '11' },
+    { name: 'Static Lunges', sets: 3, reps: '11', per: 'leg' },
+    { name: 'Hanging Leg Raises', sets: 3, reps: '11' }
+  ]
+};

@@ -1,6 +1,6 @@
 import {
   STATS, STAT_KEYS, STAT_INFO, DIFF, SKILLS, SKILL_REQ, MASTERY_STEP, SKILL_BONUS, MASTERY_BONUS, THEMES, BUFFS, JOBS, JOB_TIERS,
-  ACHIEVEMENTS, INN_PER_MONTH, JOURNAL_XP
+  ACHIEVEMENTS, INN_PER_MONTH, JOURNAL_XP, WORKOUT_DAYS
 } from './data.js';
 import * as C from './core.js';
 import { chart, attachHover, radar } from './charts.js';
@@ -41,7 +41,7 @@ if (!S) S = C.defaultState();
 const firstRun = !S.seen.intro;
 bindSettings(() => S.settings);
 
-const view = { tab: 'quests', date: null, logSub: 'calendar', month: null, selDay: null, range: 30, week: null };
+const view = { tab: 'quests', woDay: null, woEdit: false, date: null, logSub: 'calendar', month: null, selDay: null, range: 30, week: null };
 let undoStack = [];
 
 // ---------- toasts / modals ----------
@@ -111,7 +111,7 @@ function render() {
   renderHeader();
   renderTabs();
   const t = view.tab;
-  ({ quests: renderQuests, status: renderStatus, skills: renderSkills, feats: renderFeats, log: renderLog, manage: renderManage, themes: renderThemes, settings: renderSettings })[t]();
+  ({ quests: renderQuests, workout: renderWorkout, status: renderStatus, skills: renderSkills, feats: renderFeats, log: renderLog, manage: renderManage, themes: renderThemes, settings: renderSettings })[t]();
   checkAchievements();
 }
 
@@ -147,7 +147,7 @@ function renderHeader() {
   paintSync();
 }
 
-const TABS = [['quests', 'Quests'], ['status', 'Status'], ['skills', 'Skills'], ['feats', 'Feats'], ['log', 'Log'], ['manage', 'Edit Quests'], ['themes', 'Themes'], ['settings', 'Settings']];
+const TABS = [['quests', 'Quests'], ['workout', 'Workout'], ['status', 'Status'], ['skills', 'Skills'], ['feats', 'Feats'], ['log', 'Log'], ['manage', 'Edit Quests'], ['themes', 'Themes'], ['settings', 'Settings']];
 function renderTabs() {
   const L = C.levelInfo(R.xp).L;
   const dots = { status: C.jobTokens(S, L) > 0, feats: Object.keys(S.ach).some(id => !(S.seen.ach || {})[id]) };
@@ -238,6 +238,128 @@ function setTab(t) {
   document.querySelectorAll('.pane').forEach(p => p.classList.toggle('hidden', p.id !== 'pane-' + t));
   render();
   const tb = $('tabs').querySelector('.tab.on'); if (tb && tb.scrollIntoView) tb.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+// ---------- workout ----------
+const WDAY = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+const todayKey = () => Object.keys(WDAY).find(k => WDAY[k] === new Date(today() + 'T12:00').getDay());
+// "3 × 10 per arm", "9, 8, 8", "3 attempts", "3 × 25s per arm"
+function woAmount(x) {
+  const reps = String(x.reps || '').trim(), per = x.per ? ` per ${x.per}` : '';
+  if (x.sets == null) return reps + per;                               // a move inside a circuit
+  if (reps.includes(',')) return reps.split(',').map(r => r.trim()).filter(Boolean).join(', ') + per;
+  if (reps && !/\d/.test(reps)) return `${x.sets} ${reps}`;
+  return reps ? `${x.sets} × ${reps}${per}` : `${x.sets} sets`;
+}
+// per-set reps for an exercise, always exactly one per set (missing sets repeat the last count)
+function perSet(x) {
+  const r = String(x.reps).split(',').map(v => v.trim()).filter(Boolean);
+  return Array.from({ length: x.sets }, (_, k) => r[k] || r[r.length - 1] || '10');
+}
+function renderWorkout() {
+  const p = $('pane-workout'), d = today(), tk = todayKey();
+  if (!view.woDay || !S.workouts[view.woDay]) {
+    // today's workout, or the next one coming up
+    const order = WORKOUT_DAYS.map(w => w[0]);
+    view.woDay = order.includes(tk) ? tk : order.find(k => WDAY[k] > WDAY[tk]) || order[0];
+  }
+  const key = view.woDay, list = S.workouts[key] || [], isToday = key === tk;
+  const wo = (S.days[d] && S.days[d].wo) || {};
+  const doneOf = x => x.moves ? (wo[x.id] || 0) >= (x.rounds || 1) : !!wo[x.id];
+  const nDone = isToday ? list.filter(doneOf).length : 0;
+  const tabs = WORKOUT_DAYS.map(([k, n]) => `<button class="${k === key ? 'on' : ''}" data-wday="${k}">${n.slice(0, 3)}${k === tk ? '<i class="wo-today"></i>' : ''}</button>`).join('');
+  const PER = ['', 'arm', 'leg', 'side'];
+  const perSel = (v, i, j) => `<select data-f="per" data-i="${i}"${j != null ? ` data-j="${j}"` : ''}>${PER.map(o => `<option value="${o}" ${o === (v || '') ? 'selected' : ''}>${o ? 'per ' + o : '—'}</option>`).join('')}</select>`;
+  let body;
+  if (view.woEdit) {
+    body = list.map((x, i) => x.moves
+      ? `<div class="wo-edit circuit" data-i="${i}">
+          <div class="frow"><input type="text" data-f="name" data-i="${i}" value="${esc(x.name)}" maxlength="50">
+            <label class="wo-num">Rounds <input type="number" data-f="rounds" data-i="${i}" value="${x.rounds || 1}" min="1" max="20"></label>
+            <button class="del-x" data-wdel="${i}" aria-label="Remove">✕</button></div>
+          ${x.moves.map((m, j) => `<div class="frow wo-move"><input type="text" data-f="name" data-i="${i}" data-j="${j}" value="${esc(m.name)}" maxlength="50">
+            <input type="text" class="wo-reps" data-f="reps" data-i="${i}" data-j="${j}" value="${esc(m.reps)}" maxlength="20" placeholder="reps">
+            ${perSel(m.per, i, j)}<button class="del-x" data-wdel="${i}" data-j="${j}" aria-label="Remove">✕</button></div>`).join('')}
+          <button class="btn wo-add" data-wadd="move" data-i="${i}">+ Move</button></div>`
+      : (() => {
+          const varied = String(x.reps).includes(','), per = varied ? perSet(x) : [];
+          return `<div class="wo-edit" data-i="${i}"><div class="frow"><input type="text" data-f="name" data-i="${i}" value="${esc(x.name)}" maxlength="50">
+            <button class="del-x" data-wdel="${i}" aria-label="Remove">✕</button></div>
+          <div class="frow"><label class="wo-num">Sets <input type="number" data-f="sets" data-i="${i}" value="${x.sets}" min="1" max="20"></label>
+            <select data-mode="${i}"><option value="same" ${varied ? '' : 'selected'}>Same reps each set</option><option value="varied" ${varied ? 'selected' : ''}>Different each set</option></select>
+            ${perSel(x.per, i)}</div>
+          <div class="frow">${varied
+            ? per.map((r, k) => `<label class="wo-num wo-set">Set ${k + 1} <input type="text" class="wo-reps" data-setrep="${k}" data-i="${i}" value="${esc(r)}" maxlength="8"></label>`).join('')
+            : `<label class="wo-num">Reps <input type="text" class="wo-reps" data-f="reps" data-i="${i}" value="${esc(x.reps)}" maxlength="20" placeholder="10, 25s…"></label>`}</div></div>`;
+        })()).join('')
+      + `<div class="wo-addrow"><button class="btn" data-wadd="ex">+ Exercise</button><button class="btn" data-wadd="circuit">+ Circuit</button></div>
+         <div class="stat-note">Reps can be a number (10), a time (25s) or a word (attempts). Pick "Different each set" to give every set its own count.</div>`;
+  } else {
+    body = list.map(x => {
+      const isDone = isToday && doneOf(x);
+      if (!x.moves) return `<div class="quest wo-row ${isDone ? 'done' : ''} ${isToday ? '' : 'wo-plan'}" data-wid="${x.id}">
+          <div class="box"><i></i></div><div class="qname"><span class="qn">${esc(x.name)}</span></div><span class="wo-amt">${esc(woAmount(x))}</span></div>`;
+      const r = isToday ? Math.min(wo[x.id] || 0, x.rounds || 1) : 0;
+      return `<div class="quest wo-row wo-circuit ${isDone ? 'done' : ''} ${isToday ? '' : 'wo-plan'}" data-wid="${x.id}">
+          <div class="box"><i></i></div>
+          <div class="qname"><span class="qn">${esc(x.name)}</span>
+            <span class="wo-moves">${x.moves.map(m => `<span><b>${esc(m.name)}</b><em>${esc(woAmount(m))}</em></span>`).join('')}</span></div>
+          <span class="wo-amt">${r}/${x.rounds || 1}<small>rounds</small></span></div>`;
+    }).join('') || '<div class="stat-note">No exercises yet. Tap Edit to add some.</div>';
+  }
+  p.innerHTML = `<div class="win"><div class="wo-head"><h2>Workout</h2><button class="btn ${view.woEdit ? 'solid' : ''}" id="wo-edit">${view.woEdit ? 'Done' : 'Edit'}</button></div>
+    <div class="subtabs">${tabs}</div>
+    <div class="progress-note">${isToday ? `Today · <b>${nDone} / ${list.length}</b> done` : `${WORKOUT_DAYS.find(w => w[0] === key)[1]}'s plan`}</div>
+    <div class="wo-list">${body}</div></div>`;
+  p.querySelectorAll('[data-wday]').forEach(b => b.onclick = () => { view.woDay = b.dataset.wday; renderWorkout(); });
+  $('wo-edit').onclick = () => { view.woEdit = !view.woEdit; renderWorkout(); };
+  if (view.woEdit) {
+    const item = el => { const x = list[+el.dataset.i]; return el.dataset.j != null ? x.moves[+el.dataset.j] : x; };
+    p.querySelectorAll('[data-f]').forEach(el => el.onchange = () => {
+      const t = item(el), f = el.dataset.f; let v = el.value.trim();
+      if (f === 'sets' || f === 'rounds') v = Math.max(1, Math.min(20, parseInt(v, 10) || 1));
+      if (f === 'name' && !v) { el.value = t.name; return; }
+      if (f === 'per' && !v) delete t.per; else t[f] = v;
+      if (f === 'sets' && String(t.reps).includes(',')) t.reps = perSet(t).join(', ');
+      S.workouts = Object.assign({}, S.workouts); save();
+      if (f === 'sets') renderWorkout();
+    });
+    p.querySelectorAll('[data-mode]').forEach(el => el.onchange = () => {
+      const t = list[+el.dataset.mode], first = String(t.reps).split(',')[0].trim() || '10';
+      t.reps = el.value === 'varied' ? Array(t.sets).fill(first).join(', ') : first;
+      S.workouts = Object.assign({}, S.workouts); save(); renderWorkout();
+    });
+    p.querySelectorAll('[data-setrep]').forEach(el => el.onchange = () => {
+      const t = list[+el.dataset.i], r = perSet(t);
+      r[+el.dataset.setrep] = el.value.trim() || r[+el.dataset.setrep];
+      t.reps = r.join(', '); S.workouts = Object.assign({}, S.workouts); save();
+    });
+    p.querySelectorAll('[data-wdel]').forEach(b => b.onclick = () => {
+      const x = list[+b.dataset.wdel];
+      if (b.dataset.j != null) { if (x.moves.length > 1) x.moves.splice(+b.dataset.j, 1); }
+      else if (confirm(`Remove ${x.name}?`)) list.splice(+b.dataset.wdel, 1);
+      S.workouts = Object.assign({}, S.workouts); save(); renderWorkout();
+    });
+    p.querySelectorAll('[data-wadd]').forEach(b => b.onclick = () => {
+      const k = b.dataset.wadd;
+      if (k === 'move') list[+b.dataset.i].moves.push({ id: C.uid(), name: 'New move', reps: '10' });
+      else if (k === 'circuit') list.push({ id: C.uid(), name: 'New Circuit', rounds: 3, moves: [{ id: C.uid(), name: 'New move', reps: '10' }] });
+      else list.push({ id: C.uid(), name: 'New Exercise', sets: 3, reps: '10' });
+      S.workouts = Object.assign({}, S.workouts, { [key]: list }); save(); renderWorkout();
+    });
+    return;
+  }
+  // check off today's exercises; a circuit counts a round per tap, and a tap after the last round resets it
+  if (isToday) p.querySelectorAll('.wo-row').forEach(row => row.onclick = () => {
+    const x = list.find(e => e.id === row.dataset.wid); if (!x) return;
+    const r = C.ensureDay(S, d); r.wo = Object.assign({}, r.wo);
+    if (x.moves) { const n = (r.wo[x.id] || 0) + 1; if (n > (x.rounds || 1)) delete r.wo[x.id]; else r.wo[x.id] = n; }
+    else if (r.wo[x.id]) delete r.wo[x.id]; else r.wo[x.id] = 1;
+    C.cleanDay(S, d); save();
+    const nowDone = (S.days[d] && S.days[d].wo && doneOf(x)) || false;
+    if (nowDone) { sfx('check'); buzz(); burst(row.querySelector('.box'), S.settings.theme); } else sfx('uncheck');
+    renderWorkout();
+  });
 }
 
 // ---------- quests ----------

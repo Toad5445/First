@@ -12,7 +12,7 @@ export const firebaseConfig = {
   appId: '1:906999385353:web:0d23919ce021044a4857d8'
 };
 
-const MAP_SECTIONS = new Set(['log', 'skip', 't']);
+const MAP_SECTIONS = new Set(['log', 'skip', 't', 'wo']);
 const OWNER_KEY = 'the-system-owner';
 const BASE_KEY = 'the-system-synced';   // last state known to be in the cloud, kept across app restarts
 const clone = o => JSON.parse(JSON.stringify(o));

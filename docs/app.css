@@ -871,6 +871,36 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 [data-theme="ghostlights"] .pname{line-height:1.5}
 [data-theme="ghostlights"] .scene .huge{font-size:clamp(40px,11vw,88px);line-height:1.35;margin:30px 0 22px}
 
+/* ================= WORKOUT ================= */
+.wo-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.wo-head h2{margin-bottom:10px}
+.wo-list{margin-top:12px}
+.wo-row{cursor:pointer}
+.wo-row.wo-plan{cursor:default}
+.wo-row.wo-plan .box{opacity:.45}
+.wo-amt{font-family:var(--f-mono);font-size:14px;color:var(--text);white-space:nowrap;flex:none;text-align:right}
+.wo-amt small{display:block;font-size:11px;color:var(--dim);letter-spacing:.06em}
+.quest.done .wo-amt{color:var(--dim)}
+.wo-moves{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.wo-moves span{display:flex;gap:10px;font-size:14px;color:var(--dim)}
+.wo-moves b{font-weight:500;color:var(--text);opacity:.85}
+.wo-moves em{font-style:normal;font-family:var(--f-mono);font-size:12.5px;margin-left:auto;padding-right:6px;white-space:nowrap;flex:none}
+.wo-moves b{flex:1 1 auto;min-width:0}
+.wo-today{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--a);margin-left:6px;vertical-align:middle;box-shadow:0 0 6px var(--a)}
+.wo-edit{border:1px solid var(--win-border);padding:10px;margin-bottom:8px;background:rgba(var(--a-rgb),.03)}
+.wo-edit .frow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.wo-edit input[type=text]{flex:1 1 160px;min-width:0}
+.wo-edit .wo-reps{flex:0 0 76px;width:76px}
+.wo-edit select{flex:0 0 auto;width:auto}
+.wo-edit input[type=number]{width:56px}
+.wo-edit .wo-move{margin:8px 0 0 14px}
+@media (max-width:520px){.wo-edit .frow{row-gap:6px}}
+.wo-num{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:13px;white-space:nowrap}
+.wo-add{margin:8px 0 0 18px;font-size:13px;padding:4px 10px}
+.wo-edit .frow+.frow{margin-top:8px}
+.wo-set .wo-reps{flex:0 0 52px;width:52px}
+.wo-addrow{display:flex;gap:8px;margin:12px 0 8px}
+
 /* ================= SCROLLING =================
    Desktop: themed native scrollbar. Touch devices (class set in app.js): the page scrolls inside
    #scroller with the native indicator hidden, and #sbar draws a themed one instead. */
