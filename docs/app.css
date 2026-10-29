@@ -871,6 +871,27 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 [data-theme="ghostlights"] .pname{line-height:1.5}
 [data-theme="ghostlights"] .scene .huge{font-size:clamp(40px,11vw,88px);line-height:1.35;margin:30px 0 22px}
 
+/* ================= PAUSE ================= */
+.pause-ico{display:inline-flex;width:20px;height:20px;flex:none}
+.pause-ico svg,.buff.paused b svg{width:100%;height:100%;fill:currentColor}
+.pause-ico.sm{width:12px;height:12px;vertical-align:-1px;margin-right:2px}
+.pause-ico.big{width:64px;height:64px;color:var(--a);filter:drop-shadow(0 0 12px rgba(var(--a-rgb),.6))}
+.hdr-pause{position:absolute;right:22%;top:50%;width:120px;height:120px;transform:translateY(-50%);color:var(--a);opacity:.12;pointer-events:none;
+  filter:drop-shadow(0 0 18px rgba(var(--a-rgb),.8));animation:pausebreathe 3.5s ease-in-out infinite alternate}
+@keyframes pausebreathe{from{opacity:.08}to{opacity:.18}}
+.buff.paused{border-color:var(--a);background:rgba(var(--a-rgb),.12);color:var(--text)}
+.buff.paused b{display:inline-flex;width:11px;height:11px;color:var(--a)}
+.pausebanner{display:flex;align-items:center;gap:14px;padding:14px 16px;margin:12px 0 6px;border:1px solid var(--a);background:rgba(var(--a-rgb),.08)}
+.pausebanner .pause-ico{width:30px;height:30px;color:var(--a);filter:drop-shadow(0 0 8px rgba(var(--a-rgb),.6))}
+.pausebanner div{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.pausebanner b{font-family:var(--f-head);letter-spacing:.12em;text-transform:uppercase;font-size:17px}
+.pausebanner span{color:var(--dim);font-size:14px}
+.win.is-paused .quest{opacity:.5;filter:saturate(.4)}
+.cell.paused{border-color:var(--win-border);background:repeating-linear-gradient(135deg,transparent 0 4px,rgba(var(--a-rgb),.12) 4px 6px);color:var(--dim)}
+.lg-paused{border-color:var(--win-border)!important;background:repeating-linear-gradient(135deg,transparent 0 3px,rgba(var(--a-rgb),.3) 3px 5px)}
+.yearheat i.paused{background:repeating-linear-gradient(135deg,transparent 0 2px,rgba(var(--a-rgb),.3) 2px 3px)}
+body.paused #fx::before,body.paused #fx::after{animation-play-state:paused!important}
+
 /* ================= WORKOUT ================= */
 .wo-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .wo-head h2{margin-bottom:10px}

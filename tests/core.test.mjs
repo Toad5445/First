@@ -110,3 +110,25 @@ test('an excused week keeps the weekly streak without adding to it', () => {
   assert.ok(C.isWeekExcused(S, q, '2026-10-19'));
   assert.equal(C.weeklyStreak(S, q, NOWX), 2);
 });
+
+test('paused days earn nothing and leave the streak alone', () => {
+  const NOWP = new Date('2026-10-10T12:00:00').getTime();
+  const q = { id: 'a', name: 'Read', stat: 'WIS', diff: 'easy', type: 'daily', days: [0, 1, 2, 3, 4, 5, 6], createdAt: '2026-10-01' };
+  const S = C.normalize({ v: 3, name: 'X', startDate: '2026-10-01', v3Since: '2026-10-01', settings: {}, quests: [q], days: {}, jobs: [], ach: {}, seen: {} }, NOWP);
+  const e = { xp: 10, pts: 1, stat: 'WIS', name: 'Read' };
+  for (const d of ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-09']) S.days[d] = { log: { a: e } };
+  S.days['2026-10-05'] = { log: { a: e } };                       // done while paused: must not count
+  const before = C.compute(S, NOWP);
+  assert.equal(before.days['2026-10-04'].status, 'missed');       // without a pause the gap breaks the streak
+  S.pauses = [{ from: '2026-10-04', to: '2026-10-09' }];
+  const R = C.compute(S, NOWP);
+  for (const d of ['2026-10-04', '2026-10-05', '2026-10-08']) assert.equal(R.days[d].status, 'paused');
+  assert.equal(R.days['2026-10-05'].dayXp, 0);
+  assert.equal(R.days['2026-10-09'].streak, 4);                   // 3 before the pause + the day after it
+  assert.equal(R.stats.WIS, before.stats.WIS - 1);               // the paused day's stat point is gone
+  assert.equal(C.questStreak(S, S.quests[0], NOWP), 4);
+  // an open pause covers today; resuming the same day it began leaves nothing paused
+  const S2 = C.normalize(S, NOWP); S2.pauses = [];
+  C.setPaused(S2, true, NOWP); assert.ok(C.pausedNow(S2)); assert.ok(C.isPaused(S2, '2026-10-10'));
+  C.setPaused(S2, false, NOWP); assert.equal(S2.pauses.length, 0);
+});

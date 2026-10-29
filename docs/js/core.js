@@ -91,6 +91,7 @@ export function normalize(s, now = Date.now()) {
   s.ach = isObj(s.ach) ? s.ach : {};
   s.seen = isObj(s.seen) ? s.seen : {};
   s.wkx = isObj(s.wkx) ? s.wkx : {};
+  s.pauses = Array.isArray(s.pauses) ? s.pauses : [];
   // workout plan: seeded once from the default routine, then the player's own edits
   if (!isObj(s.workouts)) {
     s.workouts = JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
@@ -145,6 +146,16 @@ export function snapshotDay(S, d) {
 export function freezeHistory(S, now = Date.now()) {
   const t = today(S, now); let d = S.startDate, g = 0;
   while (d < t && g++ < 40000) { if (!(S.days[d] && S.days[d].sched)) ensureDay(S, d).sched = scheduledFor(S, d); d = addDays(d, 1); }
+}
+// Pause: S.pauses is a list of {from, to}. Days from `from` up to (not including) `to` are paused; an open
+// pause has no `to`. A paused day is as if it never happened: no XP or stat points, and streaks, shields and
+// buffs carry straight over it.
+export const isPaused = (S, d) => (S.pauses || []).some(p => d >= p.from && (!p.to || d < p.to));
+export const pausedNow = S => (S.pauses || []).some(p => !p.to);
+export function setPaused(S, on, now = Date.now()) {
+  const t = today(S, now); S.pauses = (S.pauses || []).slice();
+  if (on && !pausedNow(S)) S.pauses.push({ from: t });
+  if (!on) S.pauses = S.pauses.map(p => p.to ? p : { from: p.from, to: t }).filter(p => p.to > p.from);
 }
 export const isExcused = (S, d, id) => !!(S.days[d] && S.days[d].skip && S.days[d].skip[id]);
 export function required(S, n) {
@@ -211,11 +222,13 @@ const LEGACY_PERKS = perksFor(Object.fromEntries(STAT_KEYS.map(k => [k, 0])));
 
 function buffsFor(S, d, days, byId, perks) {
   const out = [];
-  const st = n => (days[addDays(d, -n)] || {}).status;
-  const nightDone = n => { const dd = addDays(d, -n), lg = logOf(S, dd); return Object.keys(lg).some(id => lg[id].n || (byId[id] && byId[id].night)); };
+  // the days before d, skipping paused ones
+  const back = []; for (let k = 1, dd = d; back.length < 14 && k < 400; k++) { dd = addDays(dd, -1); if (!days[dd]) break; if (days[dd].status !== 'paused') back.push(dd); }
+  const st = n => back[n - 1] ? days[back[n - 1]].status : undefined;
+  const nightDone = n => { const dd = back[n - 1] || addDays(d, -n), lg = logOf(S, dd); return Object.keys(lg).some(id => lg[id].n || (byId[id] && byId[id].night)); };
   if ([1, 2, 3].every(nightDone)) out.push('rested');
   if ([1, 2, 3].every(n => st(n) === 'perfect')) out.push('onfire');
-  if (dayTimerTotal(S, addDays(d, -1)) >= 3600) out.push('focused');
+  if (back[0] && dayTimerTotal(S, back[0]) >= 3600) out.push('focused');
   if (st(1) === 'inn') out.push('refreshed');
   if (!perks.fatigueImmune) {
     for (let n = 1; n <= 14; n++) {
@@ -251,6 +264,11 @@ export function compute(S, now = Date.now()) {
     const jobAdd = job ? JOB_TIERS[Math.max(0, jobTier(L0) - 1)][1] : 0;
     const xpStart = xp;
 
+    if (isPaused(S, d)) {
+      const statsEnd = {}; for (const k in pts) statsEnd[k] = BASE_STAT + pts[k];
+      days[d] = { status: 'paused', n: 0, c: 0, req: 0, xp, dayXp: 0, buffs: [], stats: statsEnd, streak };
+      d = addDays(d, 1); continue;
+    }
     const rec = S.days[d] || {};
     const inn = v3 && !!rec.inn;
     const sched = scheduledFor(S, d).filter(id => !isExcused(S, d, id)), done = rec.log || {};
@@ -327,7 +345,7 @@ export function questStreak(S, q, now = Date.now()) {
   if (!logOf(S, t)[q.id]) d = addDays(t, -1);
   let guard = 0;
   while (d >= S.startDate && guard++ < 5000) {
-    if (!scheduledFor(S, d).includes(q.id) || isExcused(S, d, q.id) || (S.days[d] && S.days[d].inn)) { d = addDays(d, -1); continue; }
+    if (isPaused(S, d) || !scheduledFor(S, d).includes(q.id) || isExcused(S, d, q.id) || (S.days[d] && S.days[d].inn)) { d = addDays(d, -1); continue; }
     if (logOf(S, d)[q.id]) { s++; d = addDays(d, -1); } else break;
   }
   return s;
@@ -342,7 +360,7 @@ export function weeklyStreak(S, q, now = Date.now()) {
   if (weekCount(S, q, w) < q.target) w = addDays(w, -7);
   while (w >= first && guard++ < 1000) {
     if (weekCount(S, q, w) >= q.target) s++;
-    else if (!isWeekExcused(S, q, w)) break;
+    else if (!isWeekExcused(S, q, w) && ![0, 1, 2, 3, 4, 5, 6].some(i => isPaused(S, addDays(w, i)))) break;
     w = addDays(w, -7);
   }
   return s;

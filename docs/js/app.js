@@ -107,6 +107,7 @@ function render() {
   try { localStorage.setItem('the-system-theme', S.settings.theme); } catch (e) { /* optional */ }
   loadFonts(S.settings.theme);
   document.body.classList.toggle('nofx', !S.settings.fx);
+  document.body.classList.toggle('paused', C.pausedNow(S));
   recompute();
   renderHeader();
   renderTabs();
@@ -140,9 +141,10 @@ function renderHeader() {
         <div class="shields">Shields ${Array.from({ length: R.perks.maxShields }, (_, i) => `<span class="shield ${i < R.shields ? '' : 'off'}"></span>`).join('')}<br><span style="font-size:13px">Best: ${R.best} days</span></div>
       </div>
     </div>
-    ${buffs || jobChip ? `<div class="buffrow">${buffs}${jobChip}</div>` : ''}`;
+    ${C.pausedNow(S) ? `<div class="buffrow"><span class="buff paused" data-resume><b>${PAUSE_ICON}</b>Paused · tap to resume</span></div>` : buffs || jobChip ? `<div class="buffrow">${buffs}${jobChip}</div>` : ''}`;
   $('hdr').querySelectorAll('[data-buff]').forEach(el => el.onclick = () => { const b = BUFFS[el.dataset.buff]; toast(`<b>${esc(b.name)}</b><br><span style="color:var(--dim);font-size:14px">${esc(b.desc)}</span>`, b.good ? 'green' : 'gold', b.good ? 'Buff' : 'Debuff'); });
   $('hdr').querySelectorAll('[data-goto]').forEach(el => el.onclick = () => setTab(el.dataset.goto));
+  $('hdr').querySelectorAll('[data-resume]').forEach(el => el.onclick = resumeAll);
   $('syncpill').onclick = () => setTab('settings');
   paintSync();
 }
@@ -469,7 +471,9 @@ function renderQuests() {
   const info = R.days[d] || { n: sched.length, c: 0, req: C.required(S, sched.length), status: 'pending' };
   const exNote = nEx ? ` · ${nEx} excused` : '';
   let pnote;
-  if (rec.inn && d >= S.v3Since) pnote = `${WDL[wd]} · <b>Resting at the Inn.</b> Your streak is frozen today. Anything you do still earns XP.`;
+  const paused = C.isPaused(S, d);
+  if (paused) pnote = `${WDL[wd]} · <b>Paused.</b> Nothing done this day counts, either way.`;
+  else if (rec.inn && d >= S.v3Since) pnote = `${WDL[wd]} · <b>Resting at the Inn.</b> Your streak is frozen today. Anything you do still earns XP.`;
   else if (info.n === 0) pnote = `${WDL[wd]} · <b>Rest day.</b> No daily quests ${nEx ? 'left' : 'scheduled'}. Your streak is safe.${exNote}`;
   else pnote = `${WDL[wd]} · <b>${info.c} / ${info.n}</b> complete · need <b>${info.req}</b> to clear the day${exNote}`;
 
@@ -508,13 +512,14 @@ function renderQuests() {
   const diffOpts = Object.keys(DIFF).map(k => `<option value="${k}" ${k === 'easy' ? 'selected' : ''}>${DIFF[k].label} (+${DIFF[k].xp} XP)</option>`).join('');
   const qaName = $('qa-name') ? $('qa-name').value : '';
 
-  const html = `<div class="win">
+  const html = `<div class="win ${paused ? 'is-paused' : ''}">
     <div class="qhead"><h2 style="margin:0">Daily Quests</h2>
       <div class="daynav">
         ${y >= S.startDate ? `<button data-act="day" data-d="${y}" class="${d === y ? 'on' : ''}">Yesterday</button>` : ''}
         <button data-act="day" data-d="${t}" class="${d === t ? 'on' : ''}">Today</button>
         <label class="${older ? 'on' : ''}" title="Pick an earlier day">${older ? esc(C.prettyDate(d)) : 'Earlier…'}<input type="date" id="daypick" min="${S.startDate}" max="${t}" value="${d}"></label>
       </div></div>
+    ${paused && C.pausedNow(S) && d === t ? `<div class="pausebanner"><span class="pause-ico">${PAUSE_ICON}</span><div><b>Paused</b><span>Since ${esc(C.prettyDate((S.pauses.find(p => !p.to) || {}).from || t))}. Your streak and progress are frozen.</span></div><button class="btn solid" data-act="resume">Resume</button></div>` : ''}
     <div class="constellation" id="constellation"></div>
     ${older ? `<div class="innbanner">Editing <b>${esc(C.prettyDate(d))}</b>. Changes recalculate your history. <button class="btn sm" data-act="day" data-d="${t}">Back to today</button></div>` : ''}
     <div class="progress-note">${pnote}</div>
@@ -533,6 +538,7 @@ function renderQuests() {
     <div id="journalwrap"></div>
     <div class="qfoot">
       <button class="btn sm" data-act="inn">☖ Inn</button>
+      ${C.pausedNow(S) ? '' : `<button class="btn sm" data-act="pause"><span class="pause-ico sm">${PAUSE_ICON}</span> Pause</button>`}
       <button class="btn sm" data-act="report">Weekly report</button>
     </div>
   </div>`;
@@ -609,6 +615,8 @@ function questsClick(e) {
     if (act === 'pip') { const r = C.day(S, d); const cur = r.j && r.j[a.dataset.k]; setJournal(d, a.dataset.k, cur === +a.dataset.v ? null : +a.dataset.v); renderJournal(d); return; }
     if (act === 'quickadd') return quickAdd();
     if (act === 'inn') return openInn();
+    if (act === 'pause') return openPause();
+    if (act === 'resume') return resumeAll();
     if (act === 'report') { view.logSub = 'weekly'; view.week = null; setTab('log'); return; }
     return;
   }
@@ -620,6 +628,7 @@ function questsClick(e) {
 // ---------- actions ----------
 function toggle(date, q, row) {
   if (!q) return;
+  if (C.isPaused(S, date)) { sfx('error'); return toast('Paused. Resume to check off quests.', '', 'Pause'); }
   snapshot();
   const before = R, lb = C.levelInfo(before.xp).L, skB = new Set(C.unlockedSkills(before.stats)), tB = C.titleFor(before.best);
   const stB = before.days[date] ? before.days[date].status : '';
@@ -778,6 +787,22 @@ function tick() {
 }
 
 // ---------- inn ----------
+// ---------- pause ----------
+const PAUSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+function openPause() {
+  const m = modal('Pause', `<span class="pause-ico big">${PAUSE_ICON}</span>`,
+    `<p class="note" style="text-align:left">Freeze everything until you come back. While paused, <b>nothing counts</b>:
+      no XP, no stat points, and your streak, shields and weekly streaks stay exactly where they are. Quests can't be
+      checked off. Today counts as paused too.</p><p class="note" style="text-align:left">Resume whenever you're ready and pick up where you left off.</p>
+      <div class="frow" style="justify-content:center;margin-top:12px"><button class="btn" id="p-no">Not now</button><button class="btn solid" id="p-yes">Pause</button></div>`, '');
+  $('p-no').onclick = closeModal;
+  $('p-yes').onclick = () => { snapshot(); C.setPaused(S, true); save(); closeModal(); render(); toast('Paused. Take the time you need.', '', 'Pause'); };
+  return m;
+}
+function resumeAll() {
+  snapshot(); C.setPaused(S, false); save(); render(); sfx('levelup'); toast('Welcome back. Everything is running again.', 'green', 'Resumed');
+}
+
 function openInn() {
   const t = today(), y = addDays(t, -1);
   const first = y >= S.v3Since ? y : S.v3Since;
@@ -1037,7 +1062,8 @@ const LEGEND = `<div class="legend">
   <span><i style="background:rgba(var(--a-rgb),.25);border-color:var(--a)"></i>Shield used</span>
   <span><i style="background:rgba(var(--red-rgb),.18);border-color:var(--red)"></i>Missed</span>
   <span><i style="border-style:dotted;border-color:var(--a)"></i>Inn</span>
-  <span><i style="border-style:dashed;border-color:var(--win-border)"></i>Rest</span></div>`;
+  <span><i style="border-style:dashed;border-color:var(--win-border)"></i>Rest</span>
+  <span><i class="lg-paused"></i>Paused</span></div>`;
 function logCalendar() {
   const t = R.today;
   const ym = view.month || t.slice(0, 7);
@@ -1066,7 +1092,7 @@ function logCalendar() {
 }
 function dayDetail(d) {
   const info = R.days[d] || {}, r = S.days[d] || {}, lg = r.log || {}, B = byId();
-  const names = { perfect: 'Perfect clear', cleared: 'Cleared', missed: 'Missed', shield: 'Saved by a shield', rest: 'Rest day', pending: 'In progress', inn: 'At the Inn' };
+  const names = { perfect: 'Perfect clear', cleared: 'Cleared', missed: 'Missed', shield: 'Saved by a shield', rest: 'Rest day', pending: 'In progress', inn: 'At the Inn', paused: 'Paused' };
   const rows = Object.entries(lg).map(([id, e]) => {
     const secs = C.timerSecs(S, d, id), q = B[id];
     return `<div class="dl"><span style="color:var(--${e.stat})" class="mono">${e.stat}</span><span>${esc(e.name)}${e.amt ? ` · ${e.amt} ${esc((q && q.unit) || '')}` : ''}</span><span class="mono">${secs ? mins(secs) + ' · ' : ''}+${e.xp}</span></div>`;
@@ -1089,6 +1115,7 @@ function yearHeat() {
     let cls = '';
     if (info && d <= t) {
       if (info.status === 'missed') cls = 'miss';
+      else if (info.status === 'paused') cls = 'paused';
       else if (info.n) { const r = info.c / info.n; cls = r >= 1 ? 'l4' : r >= 0.75 ? 'l3' : r >= 0.5 ? 'l2' : r > 0 ? 'l1' : ''; }
       else if (info.dayXp > 0) cls = 'l1';
     }
