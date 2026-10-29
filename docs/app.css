@@ -876,9 +876,6 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 .pause-ico svg,.buff.paused b svg{width:100%;height:100%;fill:currentColor}
 .pause-ico.sm{width:12px;height:12px;vertical-align:-1px;margin-right:2px}
 .pause-ico.big{width:64px;height:64px;color:var(--a);filter:drop-shadow(0 0 12px rgba(var(--a-rgb),.6))}
-.hdr-pause{position:absolute;right:22%;top:50%;width:120px;height:120px;transform:translateY(-50%);color:var(--a);opacity:.12;pointer-events:none;
-  filter:drop-shadow(0 0 18px rgba(var(--a-rgb),.8));animation:pausebreathe 3.5s ease-in-out infinite alternate}
-@keyframes pausebreathe{from{opacity:.08}to{opacity:.18}}
 .buff.paused{border-color:var(--a);background:rgba(var(--a-rgb),.12);color:var(--text)}
 .buff.paused b{display:inline-flex;width:11px;height:11px;color:var(--a)}
 .pausebanner{display:flex;align-items:center;gap:14px;padding:14px 16px;margin:12px 0 6px;border:1px solid var(--a);background:rgba(var(--a-rgb),.08)}
