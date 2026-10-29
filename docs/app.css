@@ -887,6 +887,8 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 .cell.paused{border-color:var(--win-border);background:repeating-linear-gradient(135deg,transparent 0 4px,rgba(var(--a-rgb),.12) 4px 6px);color:var(--dim)}
 .lg-paused{border-color:var(--win-border)!important;background:repeating-linear-gradient(135deg,transparent 0 3px,rgba(var(--a-rgb),.3) 3px 5px)}
 .yearheat i.paused{background:repeating-linear-gradient(135deg,transparent 0 2px,rgba(var(--a-rgb),.3) 2px 3px)}
+.cell.limbo{border-color:var(--a);border-style:dashed;background:rgba(var(--a-rgb),.06);color:var(--a)}
+.lg-limbo{border-color:var(--a)!important;border-style:dashed!important;background:rgba(var(--a-rgb),.1)}
 body.paused #fx::before,body.paused #fx::after{animation-play-state:paused!important}
 
 /* ================= WORKOUT ================= */

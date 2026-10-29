@@ -132,3 +132,24 @@ test('paused days earn nothing and leave the streak alone', () => {
   C.setPaused(S2, true, NOWP); assert.ok(C.pausedNow(S2)); assert.ok(C.isPaused(S2, '2026-10-10'));
   C.setPaused(S2, false, NOWP); assert.equal(S2.pauses.length, 0);
 });
+
+test('limbo days count quests but leave the streak and shields alone', () => {
+  const NOWL = new Date('2026-10-10T12:00:00').getTime();
+  const q = { id: 'a', name: 'Read', stat: 'WIS', diff: 'easy', type: 'daily', days: [0, 1, 2, 3, 4, 5, 6], createdAt: '2026-10-01' };
+  const S = C.normalize({ v: 3, name: 'X', startDate: '2026-10-01', v3Since: '2026-10-01', settings: {}, quests: [q], days: {}, jobs: [], ach: {}, seen: {} }, NOWL);
+  const e = { xp: 10, pts: 1, stat: 'WIS', name: 'Read' };
+  for (const d of ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-05', '2026-10-09']) S.days[d] = { log: { a: e } };
+  S.limbos = [{ from: '2026-10-04', to: '2026-10-09' }];
+  const R = C.compute(S, NOWL);
+  assert.equal(R.days['2026-10-04'].status, 'limbo');               // nothing done: no break
+  assert.equal(R.days['2026-10-05'].status, 'limbo');               // everything done: no growth
+  assert.equal(R.days['2026-10-05'].streak, 3);
+  assert.ok(R.days['2026-10-05'].dayXp > 0);                        // but the quest still earns XP
+  assert.equal(R.days['2026-10-09'].streak, 4);
+  assert.equal(R.stats.WIS, C.BASE_STAT + 5);                       // and its stat point
+  // starting a pause ends limbo, and the other way round
+  const S2 = C.normalize(S, NOWL); S2.limbos = []; S2.pauses = [];
+  C.setLimbo(S2, true, NOWL); C.setPaused(S2, true, NOWL);
+  assert.ok(C.pausedNow(S2) && !C.limboNow(S2));
+  C.setLimbo(S2, true, NOWL); assert.ok(C.limboNow(S2) && !C.pausedNow(S2));
+});

@@ -141,10 +141,13 @@ function renderHeader() {
         <div class="shields">Shields ${Array.from({ length: R.perks.maxShields }, (_, i) => `<span class="shield ${i < R.shields ? '' : 'off'}"></span>`).join('')}<br><span style="font-size:13px">Best: ${R.best} days</span></div>
       </div>
     </div>
-    ${C.pausedNow(S) ? `<div class="buffrow"><span class="buff paused" data-resume><b>${PAUSE_ICON}</b>Paused · tap to resume</span></div>` : buffs || jobChip ? `<div class="buffrow">${buffs}${jobChip}</div>` : ''}`;
+    ${C.pausedNow(S) ? `<div class="buffrow"><span class="buff paused" data-resume><b>${PAUSE_ICON}</b>Paused · tap to resume</span></div>`
+      : C.limboNow(S) ? `<div class="buffrow"><span class="buff paused" data-unlimbo><b>${LIMBO_ICON}</b>Limbo · tap to leave</span>${buffs}${jobChip}</div>`
+      : buffs || jobChip ? `<div class="buffrow">${buffs}${jobChip}</div>` : ''}`;
   $('hdr').querySelectorAll('[data-buff]').forEach(el => el.onclick = () => { const b = BUFFS[el.dataset.buff]; toast(`<b>${esc(b.name)}</b><br><span style="color:var(--dim);font-size:14px">${esc(b.desc)}</span>`, b.good ? 'green' : 'gold', b.good ? 'Buff' : 'Debuff'); });
   $('hdr').querySelectorAll('[data-goto]').forEach(el => el.onclick = () => setTab(el.dataset.goto));
   $('hdr').querySelectorAll('[data-resume]').forEach(el => el.onclick = resumeAll);
+  $('hdr').querySelectorAll('[data-unlimbo]').forEach(el => el.onclick = leaveLimbo);
   $('syncpill').onclick = () => setTab('settings');
   paintSync();
 }
@@ -472,7 +475,9 @@ function renderQuests() {
   const exNote = nEx ? ` · ${nEx} excused` : '';
   let pnote;
   const paused = C.isPaused(S, d);
+  const limbo = !paused && C.isLimbo(S, d);
   if (paused) pnote = `${WDL[wd]} · <b>Paused.</b> Nothing done this day counts, either way.`;
+  else if (limbo) pnote = `${WDL[wd]} · <b>In limbo.</b> ${info.c} done · quests give XP and stat points, your streak is on hold.${exNote}`;
   else if (rec.inn && d >= S.v3Since) pnote = `${WDL[wd]} · <b>Resting at the Inn.</b> Your streak is frozen today. Anything you do still earns XP.`;
   else if (info.n === 0) pnote = `${WDL[wd]} · <b>Rest day.</b> No daily quests ${nEx ? 'left' : 'scheduled'}. Your streak is safe.${exNote}`;
   else pnote = `${WDL[wd]} · <b>${info.c} / ${info.n}</b> complete · need <b>${info.req}</b> to clear the day${exNote}`;
@@ -520,6 +525,7 @@ function renderQuests() {
         <label class="${older ? 'on' : ''}" title="Pick an earlier day">${older ? esc(C.prettyDate(d)) : 'Earlier…'}<input type="date" id="daypick" min="${S.startDate}" max="${t}" value="${d}"></label>
       </div></div>
     ${paused && C.pausedNow(S) && d === t ? `<div class="pausebanner"><span class="pause-ico">${PAUSE_ICON}</span><div><b>Paused</b><span>Since ${esc(C.prettyDate((S.pauses.find(p => !p.to) || {}).from || t))}. Your streak and progress are frozen.</span></div><button class="btn solid" data-act="resume">Resume</button></div>` : ''}
+    ${limbo && C.limboNow(S) && d === t ? `<div class="pausebanner limbo"><span class="pause-ico">${LIMBO_ICON}</span><div><b>Limbo</b><span>Since ${esc(C.prettyDate((S.limbos.find(p => !p.to) || {}).from || t))}. Quests count, your streak and shields are on hold.</span></div><button class="btn solid" data-act="unlimbo">Leave</button></div>` : ''}
     <div class="constellation" id="constellation"></div>
     ${older ? `<div class="innbanner">Editing <b>${esc(C.prettyDate(d))}</b>. Changes recalculate your history. <button class="btn sm" data-act="day" data-d="${t}">Back to today</button></div>` : ''}
     <div class="progress-note">${pnote}</div>
@@ -538,6 +544,7 @@ function renderQuests() {
     <div id="journalwrap"></div>
     <div class="qfoot">
       <button class="btn sm" data-act="inn">☖ Inn</button>
+      ${C.pausedNow(S) || C.limboNow(S) ? '' : `<button class="btn sm" data-act="limbo"><span class="pause-ico sm">${LIMBO_ICON}</span> Limbo</button>`}
       ${C.pausedNow(S) ? '' : `<button class="btn sm" data-act="pause"><span class="pause-ico sm">${PAUSE_ICON}</span> Pause</button>`}
       <button class="btn sm" data-act="report">Weekly report</button>
     </div>
@@ -616,6 +623,8 @@ function questsClick(e) {
     if (act === 'quickadd') return quickAdd();
     if (act === 'inn') return openInn();
     if (act === 'pause') return openPause();
+    if (act === 'limbo') return openLimbo();
+    if (act === 'unlimbo') return leaveLimbo();
     if (act === 'resume') return resumeAll();
     if (act === 'report') { view.logSub = 'weekly'; view.week = null; setTab('log'); return; }
     return;
@@ -798,6 +807,20 @@ function openPause() {
   $('p-no').onclick = closeModal;
   $('p-yes').onclick = () => { snapshot(); C.setPaused(S, true); save(); closeModal(); render(); toast('Paused. Take the time you need.', '', 'Pause'); };
   return m;
+}
+const LIMBO_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v2c0 3-2.2 5.1-4.4 7 2.2 1.9 4.4 4 4.4 7v2H6v-2c0-3 2.2-5.1 4.4-7C8.2 10.1 6 8 6 5V3zm2 2c0 2.2 1.8 3.9 4 5.7 2.2-1.8 4-3.5 4-5.7H8zm4 8.3c-2.2 1.8-4 3.5-4 5.7h8c0-2.2-1.8-3.9-4-5.7z"/></svg>';
+function openLimbo() {
+  modal('Limbo', `<span class="pause-ico big">${LIMBO_ICON}</span>`,
+    `<p class="note" style="text-align:left">For when you're in between. Quests still count: you earn <b>XP and stat points</b> for
+      whatever you do. But your <b>streak and shields are frozen</b>: a full day won't add to the streak and a missed one won't break it,
+      like an open-ended night at the Inn. Today counts as limbo too.</p>
+      <p class="note" style="text-align:left">Leave limbo whenever you're ready and the streak picks up again.</p>
+      <div class="frow" style="justify-content:center;margin-top:12px"><button class="btn" id="l-no">Not now</button><button class="btn solid" id="l-yes">Enter limbo</button></div>`, '');
+  $('l-no').onclick = closeModal;
+  $('l-yes').onclick = () => { snapshot(); C.setLimbo(S, true); save(); closeModal(); render(); toast('In limbo. Quests still count, your streak is on hold.', '', 'Limbo'); };
+}
+function leaveLimbo() {
+  snapshot(); C.setLimbo(S, false); save(); render(); sfx('levelup'); toast('Out of limbo. Your streak is live again.', 'green', 'Limbo');
 }
 function resumeAll() {
   snapshot(); C.setPaused(S, false); save(); render(); sfx('levelup'); toast('Welcome back. Everything is running again.', 'green', 'Resumed');
@@ -1063,7 +1086,8 @@ const LEGEND = `<div class="legend">
   <span><i style="background:rgba(var(--red-rgb),.18);border-color:var(--red)"></i>Missed</span>
   <span><i style="border-style:dotted;border-color:var(--a)"></i>Inn</span>
   <span><i style="border-style:dashed;border-color:var(--win-border)"></i>Rest</span>
-  <span><i class="lg-paused"></i>Paused</span></div>`;
+  <span><i class="lg-paused"></i>Paused</span>
+  <span><i class="lg-limbo"></i>Limbo</span></div>`;
 function logCalendar() {
   const t = R.today;
   const ym = view.month || t.slice(0, 7);
@@ -1092,7 +1116,7 @@ function logCalendar() {
 }
 function dayDetail(d) {
   const info = R.days[d] || {}, r = S.days[d] || {}, lg = r.log || {}, B = byId();
-  const names = { perfect: 'Perfect clear', cleared: 'Cleared', missed: 'Missed', shield: 'Saved by a shield', rest: 'Rest day', pending: 'In progress', inn: 'At the Inn', paused: 'Paused' };
+  const names = { perfect: 'Perfect clear', cleared: 'Cleared', missed: 'Missed', shield: 'Saved by a shield', rest: 'Rest day', pending: 'In progress', inn: 'At the Inn', paused: 'Paused', limbo: 'Limbo' };
   const rows = Object.entries(lg).map(([id, e]) => {
     const secs = C.timerSecs(S, d, id), q = B[id];
     return `<div class="dl"><span style="color:var(--${e.stat})" class="mono">${e.stat}</span><span>${esc(e.name)}${e.amt ? ` · ${e.amt} ${esc((q && q.unit) || '')}` : ''}</span><span class="mono">${secs ? mins(secs) + ' · ' : ''}+${e.xp}</span></div>`;

@@ -92,6 +92,7 @@ export function normalize(s, now = Date.now()) {
   s.seen = isObj(s.seen) ? s.seen : {};
   s.wkx = isObj(s.wkx) ? s.wkx : {};
   s.pauses = Array.isArray(s.pauses) ? s.pauses : [];
+  s.limbos = Array.isArray(s.limbos) ? s.limbos : [];
   // workout plan: seeded once from the default routine, then the player's own edits
   if (!isObj(s.workouts)) {
     s.workouts = JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
@@ -147,16 +148,25 @@ export function freezeHistory(S, now = Date.now()) {
   const t = today(S, now); let d = S.startDate, g = 0;
   while (d < t && g++ < 40000) { if (!(S.days[d] && S.days[d].sched)) ensureDay(S, d).sched = scheduledFor(S, d); d = addDays(d, 1); }
 }
-// Pause: S.pauses is a list of {from, to}. Days from `from` up to (not including) `to` are paused; an open
-// pause has no `to`. A paused day is as if it never happened: no XP or stat points, and streaks, shields and
-// buffs carry straight over it.
-export const isPaused = (S, d) => (S.pauses || []).some(p => d >= p.from && (!p.to || d < p.to));
+// Pause and Limbo: S.pauses and S.limbos are lists of {from, to}. Days from `from` up to (not including) `to`
+// are covered; an open range has no `to`.
+// - A paused day is as if it never happened: no XP or stat points, and streaks, shields and buffs carry
+//   straight over it.
+// - A limbo day still counts quests (XP, stat points, weekly progress), but like a night at the Inn it neither
+//   grows nor breaks the streak and earns no clear bonus or shields.
+const inRanges = (list, d) => (list || []).some(p => d >= p.from && (!p.to || d < p.to));
+export const isPaused = (S, d) => inRanges(S.pauses, d);
+export const isLimbo = (S, d) => inRanges(S.limbos, d);
 export const pausedNow = S => (S.pauses || []).some(p => !p.to);
-export function setPaused(S, on, now = Date.now()) {
-  const t = today(S, now); S.pauses = (S.pauses || []).slice();
-  if (on && !pausedNow(S)) S.pauses.push({ from: t });
-  if (!on) S.pauses = S.pauses.map(p => p.to ? p : { from: p.from, to: t }).filter(p => p.to > p.from);
+export const limboNow = S => (S.limbos || []).some(p => !p.to);
+function setRange(S, key, on, now) {
+  const t = today(S, now); S[key] = (S[key] || []).slice();
+  if (on && !S[key].some(p => !p.to)) S[key].push({ from: t });
+  if (!on) S[key] = S[key].map(p => p.to ? p : { from: p.from, to: t }).filter(p => p.to > p.from);
 }
+// only one of the two at a time: starting one ends the other
+export function setPaused(S, on, now = Date.now()) { if (on) setRange(S, 'limbos', false, now); setRange(S, 'pauses', on, now); }
+export function setLimbo(S, on, now = Date.now()) { if (on) setRange(S, 'pauses', false, now); setRange(S, 'limbos', on, now); }
 export const isExcused = (S, d, id) => !!(S.days[d] && S.days[d].skip && S.days[d].skip[id]);
 export function required(S, n) {
   const r = S.settings.rule;
@@ -234,7 +244,7 @@ function buffsFor(S, d, days, byId, perks) {
     for (let n = 1; n <= 14; n++) {
       const s = st(n);
       if (!s) break;
-      if (s === 'rest' || s === 'inn') continue;
+      if (s === 'rest' || s === 'inn' || s === 'limbo') continue;
       if (s === 'missed' || s === 'shield') out.push('fatigued');
       break;
     }
@@ -270,7 +280,7 @@ export function compute(S, now = Date.now()) {
       d = addDays(d, 1); continue;
     }
     const rec = S.days[d] || {};
-    const inn = v3 && !!rec.inn;
+    const inn = v3 && !!rec.inn, limbo = isLimbo(S, d);
     const sched = scheduledFor(S, d).filter(id => !isExcused(S, d, id)), done = rec.log || {};
     const mult = 1 + Math.min(streak, perks.streakCap) * STREAK_BONUS_PER_DAY;
     const schedSet = new Set(sched), sides = [], mains = [];
@@ -304,6 +314,7 @@ export function compute(S, now = Date.now()) {
     const n = sched.length, c = sched.filter(id => done[id]).length, req = required(S, n);
     let status;
     if (inn) status = 'inn';
+    else if (limbo) status = 'limbo';
     else if (n === 0) status = 'rest';
     else if (c >= req) {
       status = c === n ? 'perfect' : 'cleared';
@@ -345,7 +356,7 @@ export function questStreak(S, q, now = Date.now()) {
   if (!logOf(S, t)[q.id]) d = addDays(t, -1);
   let guard = 0;
   while (d >= S.startDate && guard++ < 5000) {
-    if (isPaused(S, d) || !scheduledFor(S, d).includes(q.id) || isExcused(S, d, q.id) || (S.days[d] && S.days[d].inn)) { d = addDays(d, -1); continue; }
+    if (isPaused(S, d) || isLimbo(S, d) || !scheduledFor(S, d).includes(q.id) || isExcused(S, d, q.id) || (S.days[d] && S.days[d].inn)) { d = addDays(d, -1); continue; }
     if (logOf(S, d)[q.id]) { s++; d = addDays(d, -1); } else break;
   }
   return s;
@@ -360,7 +371,7 @@ export function weeklyStreak(S, q, now = Date.now()) {
   if (weekCount(S, q, w) < q.target) w = addDays(w, -7);
   while (w >= first && guard++ < 1000) {
     if (weekCount(S, q, w) >= q.target) s++;
-    else if (!isWeekExcused(S, q, w) && ![0, 1, 2, 3, 4, 5, 6].some(i => isPaused(S, addDays(w, i)))) break;
+    else if (!isWeekExcused(S, q, w) && ![0, 1, 2, 3, 4, 5, 6].some(i => isPaused(S, addDays(w, i)) || isLimbo(S, addDays(w, i)))) break;
     w = addDays(w, -7);
   }
   return s;
