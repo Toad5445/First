@@ -875,14 +875,28 @@ function renderSimple() {
 
 // ---------- pause ----------
 const PAUSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+// a start-date picker for Pause / Limbo, offering the day after the last day anything was checked off
+function startPicker(id) {
+  const t = today(), y = addDays(t, -1);
+  let last = null; for (let d = y; d >= S.startDate && d >= addDays(t, -60); d = addDays(d, -1)) if (S.days[d] && S.days[d].log && Object.keys(S.days[d].log).length) { last = d; break; }
+  const since = last && last < y ? addDays(last, 1) : null;
+  return `<div class="startpick"><label for="${id}">Starting</label><input type="date" id="${id}" min="${S.startDate}" max="${t}" value="${t}">
+    ${since ? `<button class="btn sm" type="button" data-since="${since}" data-for="${id}">From ${esc(C.prettyDate(since))}</button>
+      <div class="note">You last checked something off on ${esc(C.prettyDate(last))}. Starting earlier covers the days since, so they don't count against you.</div>` : ''}</div>`;
+}
+function bindStartPicker() {
+  $('modalroot').querySelectorAll('[data-since]').forEach(b => b.onclick = () => { $(b.dataset.for).value = b.dataset.since; });
+}
 function openPause() {
   const m = modal('Pause', `<span class="pause-ico big">${PAUSE_ICON}</span>`,
     `<p class="note" style="text-align:left">Freeze everything until you come back. While paused, <b>nothing counts</b>:
       no XP, no stat points, and your streak, shields and weekly streaks stay exactly where they are. Quests can't be
-      checked off. Today counts as paused too.</p><p class="note" style="text-align:left">Resume whenever you're ready and pick up where you left off.</p>
+      checked off.</p><p class="note" style="text-align:left">Resume whenever you're ready and pick up where you left off.</p>
+      ${startPicker('p-from')}
       <div class="frow" style="justify-content:center;margin-top:12px"><button class="btn" id="p-no">Not now</button><button class="btn solid" id="p-yes">Pause</button></div>`, '');
+  bindStartPicker();
   $('p-no').onclick = closeModal;
-  $('p-yes').onclick = () => { snapshot(); C.setPaused(S, true); save(); closeModal(); render(); toast('Paused. Take the time you need.', '', 'Pause'); };
+  $('p-yes').onclick = () => { snapshot(); C.setPaused(S, true, Date.now(), $('p-from').value); save(); closeModal(); render(); toast('Paused. Take the time you need.', '', 'Pause'); };
   return m;
 }
 const LIMBO_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v2c0 3-2.2 5.1-4.4 7 2.2 1.9 4.4 4 4.4 7v2H6v-2c0-3 2.2-5.1 4.4-7C8.2 10.1 6 8 6 5V3zm2 2c0 2.2 1.8 3.9 4 5.7 2.2-1.8 4-3.5 4-5.7H8zm4 8.3c-2.2 1.8-4 3.5-4 5.7h8c0-2.2-1.8-3.9-4-5.7z"/></svg>';
@@ -890,11 +904,13 @@ function openLimbo() {
   modal('Limbo', `<span class="pause-ico big">${LIMBO_ICON}</span>`,
     `<p class="note" style="text-align:left">For when you're in between. Quests still count: you earn <b>XP and stat points</b> for
       whatever you do. But your <b>streak and shields are frozen</b>: a full day won't add to the streak and a missed one won't break it,
-      like an open-ended night at the Inn. Today counts as limbo too.</p>
+      like an open-ended night at the Inn.</p>
       <p class="note" style="text-align:left">Leave limbo whenever you're ready and the streak picks up again.</p>
+      ${startPicker('l-from')}
       <div class="frow" style="justify-content:center;margin-top:12px"><button class="btn" id="l-no">Not now</button><button class="btn solid" id="l-yes">Enter limbo</button></div>`, '');
+  bindStartPicker();
   $('l-no').onclick = closeModal;
-  $('l-yes').onclick = () => { snapshot(); C.setLimbo(S, true); save(); closeModal(); render(); toast('In limbo. Quests still count, your streak is on hold.', '', 'Limbo'); };
+  $('l-yes').onclick = () => { snapshot(); C.setLimbo(S, true, Date.now(), $('l-from').value); save(); closeModal(); render(); toast('In limbo. Quests still count, your streak is on hold.', '', 'Limbo'); };
 }
 function leaveLimbo() {
   snapshot(); C.setLimbo(S, false); save(); render(); sfx('levelup'); toast('Out of limbo. Your streak is live again.', 'green', 'Limbo');

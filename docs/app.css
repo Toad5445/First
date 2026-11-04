@@ -896,6 +896,9 @@ body.paused #fx::before,body.paused #fx::after{animation-play-state:paused!impor
 .modebar .subtabs{margin:0}
 .modebar .subtabs button{display:inline-flex;align-items:center;gap:6px}
 .daymode{margin:8px 0 6px}
+.startpick{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 4px;text-align:left}
+.startpick label{color:var(--dim);font-size:14px}
+.startpick .note{flex-basis:100%;margin:2px 0 0}
 
 /* ================= SIMPLE MODE ================= */
 body.simple #hdr,body.simple #tabs{display:none}

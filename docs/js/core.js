@@ -160,9 +160,23 @@ export const isPaused = (S, d) => inRanges(S.pauses, d);
 export const isLimbo = (S, d) => inRanges(S.limbos, d);
 export const pausedNow = S => (S.pauses || []).some(p => !p.to);
 export const limboNow = S => (S.limbos || []).some(p => !p.to);
-function setRange(S, key, on, now) {
+// keep a range list sorted, with touching or overlapping ranges joined
+function mergeRanges(list) {
+  return list.slice().sort((a, b) => a.from < b.from ? -1 : 1).reduce((o, p) => {
+    const l = o[o.length - 1];
+    if (l && (!l.to || l.to >= p.from)) { if (l.to && (!p.to || p.to > l.to)) { if (p.to) l.to = p.to; else delete l.to; } }
+    else o.push({ ...p });
+    return o;
+  }, []);
+}
+function setRange(S, key, on, now, from) {
   const t = today(S, now); S[key] = (S[key] || []).slice();
-  if (on && !S[key].some(p => !p.to)) S[key].push({ from: t });
+  if (on && !S[key].some(p => !p.to)) {
+    // starting earlier than today covers the days in between too, whatever they were set to
+    const f = from && from < t ? from : t;
+    for (let d = f; d < t; d = addDays(d, 1)) setDayMode(S, d, 'normal');
+    S[key] = mergeRanges([...S[key], { from: f }]);
+  }
   if (!on) S[key] = S[key].map(p => p.to ? p : { from: p.from, to: t }).filter(p => p.to > p.from);
 }
 // Change a single past (or current) day to 'paused', 'limbo' or 'normal', splitting any range around it.
@@ -176,20 +190,14 @@ export function setDayMode(S, d, mode) {
     if (!p.to) out.push({ from: nx }); else if (nx < p.to) out.push({ from: nx, to: p.to });
     return out;
   });
-  // merge ranges that touch so the list stays tidy
-  const merge = list => list.sort((a, b) => a.from < b.from ? -1 : 1).reduce((o, p) => {
-    const l = o[o.length - 1];
-    if (l && l.to && l.to >= p.from) { l.to = !p.to ? undefined : p.to > l.to ? p.to : l.to; if (!l.to) delete l.to; }
-    else o.push({ ...p });
-    return o;
-  }, []);
+  const merge = mergeRanges;
   S.pauses = cut(S.pauses); S.limbos = cut(S.limbos);
   const key = mode === 'paused' ? 'pauses' : mode === 'limbo' ? 'limbos' : null;
   if (key) S[key] = merge([...S[key], { from: d, to: addDays(d, 1) }]);
 }
 // only one of the two at a time: starting one ends the other
-export function setPaused(S, on, now = Date.now()) { if (on) setRange(S, 'limbos', false, now); setRange(S, 'pauses', on, now); }
-export function setLimbo(S, on, now = Date.now()) { if (on) setRange(S, 'pauses', false, now); setRange(S, 'limbos', on, now); }
+export function setPaused(S, on, now = Date.now(), from) { if (on) setRange(S, 'limbos', false, now); setRange(S, 'pauses', on, now, from); }
+export function setLimbo(S, on, now = Date.now(), from) { if (on) setRange(S, 'pauses', false, now); setRange(S, 'limbos', on, now, from); }
 export const isExcused = (S, d, id) => !!(S.days[d] && S.days[d].skip && S.days[d].skip[id]);
 export function required(S, n) {
   const r = S.settings.rule;

@@ -165,3 +165,13 @@ test('a single past day can be switched to paused, limbo or back to normal', () 
   assert.deepEqual(S.limbos, []);
   assert.ok(!C.isPaused(S, '2026-10-30') && C.isPaused(S, '2026-10-31') && C.isPaused(S, '2026-10-29'));
 });
+
+test('a pause can start in the past, covering days already away', () => {
+  const NOWB = new Date('2026-11-04T15:00:00').getTime();
+  const S = { settings: { dayStart: 4 }, pauses: [], limbos: [{ from: '2026-10-30', to: '2026-10-31' }] };
+  C.setPaused(S, true, NOWB, '2026-10-29');
+  assert.deepEqual(S.pauses, [{ from: '2026-10-29' }]);
+  assert.deepEqual(S.limbos, []);                                 // the limbo day inside the span became paused
+  C.setPaused(S, false, NOWB);
+  assert.deepEqual(S.pauses, [{ from: '2026-10-29', to: '2026-11-04' }]);
+});
