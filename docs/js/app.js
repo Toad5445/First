@@ -546,16 +546,15 @@ function renderQuests() {
     </div>
     ${bonusHtml}
     <div id="journalwrap"></div>
+    ${modeBar()}
     <div class="qfoot">
       <button class="btn sm" data-act="inn">☖ Inn</button>
-      <button class="btn sm" data-act="simple">☐ Simple mode</button>
-      ${C.pausedNow(S) || C.limboNow(S) ? '' : `<button class="btn sm" data-act="limbo"><span class="pause-ico sm">${LIMBO_ICON}</span> Limbo</button>`}
-      ${C.pausedNow(S) ? '' : `<button class="btn sm" data-act="pause"><span class="pause-ico sm">${PAUSE_ICON}</span> Pause</button>`}
       <button class="btn sm" data-act="report">Weekly report</button>
     </div>
   </div>`;
   const prevStat = $('qa-stat') ? $('qa-stat').value : null;
   pane.innerHTML = html;
+  bindModeBar(pane);
   if (prevStat && qaTouched) $('qa-stat').value = prevStat; else { const k = C.suggestStat(qaName); if (k) $('qa-stat').value = k; }
   renderJournal(d, keepJournal);
   renderConstellation(d, schedQuests, done);
@@ -802,6 +801,30 @@ function tick() {
 }
 
 // ---------- inn ----------
+// ---------- modes: normal, limbo, pause, simple ----------
+const curMode = () => S.simple ? 'simple' : C.pausedNow(S) ? 'pause' : C.limboNow(S) ? 'limbo' : 'normal';
+function modeBar() {
+  const m = curMode(), opt = (k, label) => `<button class="${m === k ? 'on' : ''}" data-mode-go="${k}">${label}</button>`;
+  return `<div class="modebar"><span class="sys-label">Mode</span><div class="subtabs">${opt('normal', 'Normal')}${opt('limbo', `<span class="pause-ico sm">${LIMBO_ICON}</span> Limbo`)}${opt('pause', `<span class="pause-ico sm">${PAUSE_ICON}</span> Pause`)}${opt('simple', '☐ Simple')}</div></div>`;
+}
+function bindModeBar(root) {
+  root.querySelectorAll('[data-mode-go]').forEach(b => b.onclick = () => goMode(b.dataset.modeGo));
+}
+function goMode(m) {
+  const from = curMode(); if (m === from) return;
+  if (m === 'simple') return setSimple(true);
+  // the first step out of Normal explains what the mode does
+  if (from === 'normal' && m === 'pause') return openPause();
+  if (from === 'normal' && m === 'limbo') return openLimbo();
+  snapshot();
+  delete S.simple; delete S.simplePaused; delete S.simpleLimbo;
+  if (m === 'normal') { C.setPaused(S, false); C.setLimbo(S, false); }
+  if (m === 'pause') C.setPaused(S, true);
+  if (m === 'limbo') C.setLimbo(S, true);
+  save(); render();
+  toast({ normal: 'Back to normal. Everything counts again.', pause: 'Paused. Nothing counts until you resume.', limbo: 'In limbo. Quests count, your streak is on hold.' }[m], m === 'normal' ? 'green' : '', 'Mode');
+}
+
 // ---------- simple mode ----------
 function setSimple(on) {
   snapshot();
@@ -828,7 +851,9 @@ function renderSimple() {
         <button class="del-x" data-tddel="${i}" aria-label="Remove">✕</button></div>`).join('')
       || '<div class="empty">Nothing yet. What do you want to get done today?</div>'}</div>
     ${list.length ? `<div class="td-foot"><span>${nDone} / ${list.length} done</span>${nDone ? '<button class="btn sm" id="td-clear">Clear done</button>' : ''}</div>` : ''}
+    ${modeBar()}
   </div>`;
+  bindModeBar(p);
   const put = l => { C.ensureDay(S, d).todo = l; C.cleanDay(S, d); save(); renderSimple(); };
   $('td-form').onsubmit = e => {
     e.preventDefault();
@@ -1129,6 +1154,11 @@ function renderLog() {
   p.querySelectorAll('[data-range]').forEach(b => b.onclick = () => { view.range = +b.dataset.range; renderLog(); });
   p.querySelectorAll('[data-week]').forEach(b => b.onclick = () => { view.week = b.dataset.week; renderLog(); });
   p.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { view.date = b.dataset.open === today() ? null : b.dataset.open; setTab('quests'); });
+  p.querySelectorAll('[data-daymode]').forEach(b => b.onclick = () => {
+    const d = b.dataset.d, before = R.streak;
+    snapshot(); C.setDayMode(S, d, b.dataset.daymode); save(); render();
+    toast(`${esc(C.prettyDate(d))} now counts as <b>${b.textContent}</b>. Streak: ${before} → ${R.streak}.`, R.streak >= before ? 'green' : 'gold', 'Log');
+  });
   attachHover(p);
 }
 const LEGEND = `<div class="legend">
@@ -1180,7 +1210,10 @@ function dayDetail(d) {
     <div style="margin-top:10px">${rows || '<div class="empty">Nothing checked off.</div>'}</div>
     ${missed.length ? `<div class="note" style="margin-top:6px">Not done: ${missed.map(esc).join(', ')}</div>` : ''}
     ${r.j ? `<div class="sub" style="margin-top:14px">Journal</div>${r.j.mood ? `<div class="dl"><span>Mood</span><span class="mono">${r.j.mood}/5</span></div>` : ''}${r.j.energy ? `<div class="dl"><span>Energy</span><span class="mono">${r.j.energy}/5</span></div>` : ''}${r.j.text ? `<p style="margin:6px 0 0;color:var(--text);font-size:15px">“${esc(r.j.text)}”</p>` : ''}` : ''}
-    <button class="btn sm" data-open="${d}" style="margin-top:14px">Edit this day</button></div>`;
+    <button class="btn sm" data-open="${d}" style="margin-top:14px">Edit this day</button>
+    <div class="sub" style="margin-top:16px">Count this day as</div>
+    <div class="subtabs daymode">${[['normal', 'Normal'], ['limbo', 'Limbo'], ['paused', 'Paused']].map(([k, n]) => `<button class="${(C.isPaused(S, d) ? 'paused' : C.isLimbo(S, d) ? 'limbo' : 'normal') === k ? 'on' : ''}" data-daymode="${k}" data-d="${d}">${n}</button>`).join('')}</div>
+    <div class="note">Limbo: quests count, the streak neither grows nor breaks. Paused: nothing counts.</div></div>`;
 }
 function yearHeat() {
   const t = R.today, ws = +S.settings.weekStart;

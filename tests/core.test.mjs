@@ -153,3 +153,15 @@ test('limbo days count quests but leave the streak and shields alone', () => {
   assert.ok(C.pausedNow(S2) && !C.limboNow(S2));
   C.setLimbo(S2, true, NOWL); assert.ok(C.limboNow(S2) && !C.pausedNow(S2));
 });
+
+test('a single past day can be switched to paused, limbo or back to normal', () => {
+  const S = { pauses: [{ from: '2026-10-29' }], limbos: [] };
+  C.setDayMode(S, '2026-10-28', 'paused');                       // just before an open pause: merges into it
+  assert.deepEqual(S.pauses, [{ from: '2026-10-28' }]);
+  C.setDayMode(S, '2026-10-30', 'limbo');                        // splits the open pause around it
+  assert.deepEqual(S.pauses, [{ from: '2026-10-28', to: '2026-10-30' }, { from: '2026-10-31' }]);
+  assert.deepEqual(S.limbos, [{ from: '2026-10-30', to: '2026-10-31' }]);
+  C.setDayMode(S, '2026-10-30', 'normal');
+  assert.deepEqual(S.limbos, []);
+  assert.ok(!C.isPaused(S, '2026-10-30') && C.isPaused(S, '2026-10-31') && C.isPaused(S, '2026-10-29'));
+});

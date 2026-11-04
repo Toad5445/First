@@ -165,6 +165,28 @@ function setRange(S, key, on, now) {
   if (on && !S[key].some(p => !p.to)) S[key].push({ from: t });
   if (!on) S[key] = S[key].map(p => p.to ? p : { from: p.from, to: t }).filter(p => p.to > p.from);
 }
+// Change a single past (or current) day to 'paused', 'limbo' or 'normal', splitting any range around it.
+// Used to fix up history, e.g. a day missed just before a pause was started.
+export function setDayMode(S, d, mode) {
+  const cut = list => (list || []).flatMap(p => {
+    if (!(d >= p.from && (!p.to || d < p.to))) return [p];
+    const out = [];
+    if (p.from < d) out.push({ from: p.from, to: d });
+    const nx = addDays(d, 1);
+    if (!p.to) out.push({ from: nx }); else if (nx < p.to) out.push({ from: nx, to: p.to });
+    return out;
+  });
+  // merge ranges that touch so the list stays tidy
+  const merge = list => list.sort((a, b) => a.from < b.from ? -1 : 1).reduce((o, p) => {
+    const l = o[o.length - 1];
+    if (l && l.to && l.to >= p.from) { l.to = !p.to ? undefined : p.to > l.to ? p.to : l.to; if (!l.to) delete l.to; }
+    else o.push({ ...p });
+    return o;
+  }, []);
+  S.pauses = cut(S.pauses); S.limbos = cut(S.limbos);
+  const key = mode === 'paused' ? 'pauses' : mode === 'limbo' ? 'limbos' : null;
+  if (key) S[key] = merge([...S[key], { from: d, to: addDays(d, 1) }]);
+}
 // only one of the two at a time: starting one ends the other
 export function setPaused(S, on, now = Date.now()) { if (on) setRange(S, 'limbos', false, now); setRange(S, 'pauses', on, now); }
 export function setLimbo(S, on, now = Date.now()) { if (on) setRange(S, 'pauses', false, now); setRange(S, 'limbos', on, now); }

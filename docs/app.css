@@ -891,6 +891,12 @@ body.nofx *,body.nofx *::before,body.nofx *::after{animation-duration:.001s!impo
 .lg-limbo{border-color:var(--a)!important;border-style:dashed!important;background:rgba(var(--a-rgb),.1)}
 body.paused #fx::before,body.paused #fx::after{animation-play-state:paused!important}
 
+/* ================= MODES ================= */
+.modebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--win-border)}
+.modebar .subtabs{margin:0}
+.modebar .subtabs button{display:inline-flex;align-items:center;gap:6px}
+.daymode{margin:8px 0 6px}
+
 /* ================= SIMPLE MODE ================= */
 body.simple #hdr,body.simple #tabs{display:none}
 .simple{max-width:640px;margin:0 auto}
