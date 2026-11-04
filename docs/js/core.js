@@ -117,6 +117,7 @@ export function cleanDay(s, d) {
   const r = s.days[d]; if (!r) return;
   for (const k of ['log', 'skip', 't', 'wo']) if (r[k] && !Object.keys(r[k]).length) delete r[k];
   if (r.j && !r.j.text && !r.j.mood && !r.j.energy) delete r.j;
+  if (Array.isArray(r.todo) && !r.todo.length) delete r.todo;
   if (!r.inn) delete r.inn;
   if (!Object.keys(r).length) delete s.days[d];
 }

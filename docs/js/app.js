@@ -109,6 +109,10 @@ function render() {
   document.body.classList.toggle('nofx', !S.settings.fx);
   document.body.classList.toggle('paused', C.pausedNow(S));
   recompute();
+  // Simple mode: just today's to-do list, the game hidden (and paused) behind it
+  document.body.classList.toggle('simple', !!S.simple);
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('hidden', S.simple ? p.id !== 'pane-simple' : p.id !== 'pane-' + view.tab));
+  if (S.simple) { renderSimple(); return; }
   renderHeader();
   renderTabs();
   const t = view.tab;
@@ -544,6 +548,7 @@ function renderQuests() {
     <div id="journalwrap"></div>
     <div class="qfoot">
       <button class="btn sm" data-act="inn">☖ Inn</button>
+      <button class="btn sm" data-act="simple">☐ Simple mode</button>
       ${C.pausedNow(S) || C.limboNow(S) ? '' : `<button class="btn sm" data-act="limbo"><span class="pause-ico sm">${LIMBO_ICON}</span> Limbo</button>`}
       ${C.pausedNow(S) ? '' : `<button class="btn sm" data-act="pause"><span class="pause-ico sm">${PAUSE_ICON}</span> Pause</button>`}
       <button class="btn sm" data-act="report">Weekly report</button>
@@ -623,6 +628,7 @@ function questsClick(e) {
     if (act === 'quickadd') return quickAdd();
     if (act === 'inn') return openInn();
     if (act === 'pause') return openPause();
+    if (act === 'simple') return setSimple(true);
     if (act === 'limbo') return openLimbo();
     if (act === 'unlimbo') return leaveLimbo();
     if (act === 'resume') return resumeAll();
@@ -796,6 +802,52 @@ function tick() {
 }
 
 // ---------- inn ----------
+// ---------- simple mode ----------
+function setSimple(on) {
+  snapshot();
+  S.simple = on || undefined;
+  // the game can't be missed while it's hidden: pause it, and put things back as they were on the way out
+  if (on && !C.pausedNow(S)) { if (C.limboNow(S)) S.simpleLimbo = true; C.setPaused(S, true); S.simplePaused = true; }
+  if (!on && S.simplePaused) { C.setPaused(S, false); if (S.simpleLimbo) C.setLimbo(S, true); delete S.simplePaused; delete S.simpleLimbo; }
+  save(); render(); scrollToTop();
+}
+function renderSimple() {
+  const p = $('pane-simple'), d = today(), y = addDays(d, -1);
+  const list = (S.days[d] && S.days[d].todo) || [];
+  const left = ((S.days[y] && S.days[y].todo) || []).filter(x => !x.done && !list.some(l => l.text === x.text));
+  const nDone = list.filter(x => x.done).length;
+  const draft = $('td-new') ? $('td-new').value : '';
+  p.innerHTML = `<div class="win simple">
+    <div class="simple-head"><div><div class="sys-label">${esc(C.prettyDate(d))}</div><h2>Today</h2></div>
+      <button class="btn sm" id="td-exit">Back to the game</button></div>
+    <form class="td-add" id="td-form"><input type="text" id="td-new" maxlength="120" placeholder="Add a task…" autocomplete="off" value="${esc(draft)}"><button class="btn solid" type="submit">Add</button></form>
+    ${left.length && !list.length ? `<button class="btn sm td-carry" id="td-carry">Bring over ${left.length} unfinished from yesterday</button>` : ''}
+    <div class="td-list">${list.map((x, i) => `<div class="td ${x.done ? 'done' : ''}" data-i="${i}">
+        <button class="td-box" data-tdtoggle="${i}" aria-label="${x.done ? 'Mark not done' : 'Mark done'}"><i></i></button>
+        <span class="td-text" data-tdtoggle="${i}">${esc(x.text)}</span>
+        <button class="del-x" data-tddel="${i}" aria-label="Remove">✕</button></div>`).join('')
+      || '<div class="empty">Nothing yet. What do you want to get done today?</div>'}</div>
+    ${list.length ? `<div class="td-foot"><span>${nDone} / ${list.length} done</span>${nDone ? '<button class="btn sm" id="td-clear">Clear done</button>' : ''}</div>` : ''}
+  </div>`;
+  const put = l => { C.ensureDay(S, d).todo = l; C.cleanDay(S, d); save(); renderSimple(); };
+  $('td-form').onsubmit = e => {
+    e.preventDefault();
+    const v = $('td-new').value.trim(); if (!v) return;
+    $('td-new').value = ''; put([...list, { text: v }]);
+    $('td-new').focus();
+  };
+  p.querySelectorAll('[data-tdtoggle]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.tdtoggle, l = list.map(x => ({ ...x }));
+    l[i].done = !l[i].done || undefined;
+    if (l[i].done) { sfx('check'); buzz(); burst(p.querySelector(`.td[data-i="${i}"] .td-box`), S.settings.theme); } else sfx('uncheck');
+    put(l);
+  });
+  p.querySelectorAll('[data-tddel]').forEach(b => b.onclick = () => put(list.filter((_, i) => i !== +b.dataset.tddel)));
+  if ($('td-clear')) $('td-clear').onclick = () => put(list.filter(x => !x.done));
+  if ($('td-carry')) $('td-carry').onclick = () => put(left.map(x => ({ text: x.text })));
+  $('td-exit').onclick = () => setSimple(false);
+}
+
 // ---------- pause ----------
 const PAUSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
 function openPause() {
