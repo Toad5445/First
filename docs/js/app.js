@@ -834,43 +834,57 @@ function setSimple(on) {
   if (!on && S.simplePaused) { C.setPaused(S, false); if (S.simpleLimbo) C.setLimbo(S, true); delete S.simplePaused; delete S.simpleLimbo; }
   save(); render(); scrollToTop();
 }
+// The shell (header, the add box, mode bar) is built once and only the list below it is redrawn, so the add box
+// keeps focus and the keyboard stays up between tasks. Tapping anywhere else dismisses it as usual.
 function renderSimple() {
-  const p = $('pane-simple'), d = today(), y = addDays(d, -1);
-  const list = (S.days[d] && S.days[d].todo) || [];
+  const p = $('pane-simple'), d = today();
+  if (!$('td-form') || p.dataset.day !== d) {
+    p.dataset.day = d;
+    p.innerHTML = `<div class="win simple">
+      <div class="simple-head"><div><div class="sys-label">${esc(C.prettyDate(d))}</div><h2>Today</h2></div>
+        <button class="btn sm" id="td-exit">Back to the game</button></div>
+      <form class="td-add" id="td-form"><input type="text" id="td-new" maxlength="120" placeholder="Add a task…" autocomplete="off" enterkeyhint="done"><button class="btn solid" type="submit" id="td-addbtn">Add</button></form>
+      <div id="td-body"></div>
+      <div id="td-modes"></div>
+    </div>`;
+    $('td-exit').onclick = () => setSimple(false);
+    // pressing Add mustn't steal focus from the box (that would close the keyboard)
+    $('td-addbtn').addEventListener('pointerdown', e => e.preventDefault());
+    $('td-form').onsubmit = e => {
+      e.preventDefault();
+      const inp = $('td-new'), v = inp.value.trim();
+      inp.focus();
+      if (!v) return;
+      inp.value = '';
+      const list = (S.days[d] && S.days[d].todo) || [];
+      putTodo(d, [...list, { text: v }]);
+    };
+  }
+  $('td-modes').innerHTML = modeBar(); bindModeBar($('td-modes'));
+  renderTodoList(d);
+}
+function putTodo(d, l) { C.ensureDay(S, d).todo = l; C.cleanDay(S, d); save(); renderTodoList(d); }
+function renderTodoList(d) {
+  const body = $('td-body'); if (!body) return;
+  const y = addDays(d, -1), list = (S.days[d] && S.days[d].todo) || [];
   const left = ((S.days[y] && S.days[y].todo) || []).filter(x => !x.done && !list.some(l => l.text === x.text));
   const nDone = list.filter(x => x.done).length;
-  const draft = $('td-new') ? $('td-new').value : '';
-  p.innerHTML = `<div class="win simple">
-    <div class="simple-head"><div><div class="sys-label">${esc(C.prettyDate(d))}</div><h2>Today</h2></div>
-      <button class="btn sm" id="td-exit">Back to the game</button></div>
-    <form class="td-add" id="td-form"><input type="text" id="td-new" maxlength="120" placeholder="Add a task…" autocomplete="off" value="${esc(draft)}"><button class="btn solid" type="submit">Add</button></form>
-    ${left.length && !list.length ? `<button class="btn sm td-carry" id="td-carry">Bring over ${left.length} unfinished from yesterday</button>` : ''}
+  body.innerHTML = `${left.length && !list.length ? `<button class="btn sm td-carry" id="td-carry">Bring over ${left.length} unfinished from yesterday</button>` : ''}
     <div class="td-list">${list.map((x, i) => `<div class="td ${x.done ? 'done' : ''}" data-i="${i}">
         <button class="td-box" data-tdtoggle="${i}" aria-label="${x.done ? 'Mark not done' : 'Mark done'}"><i></i></button>
         <span class="td-text" data-tdtoggle="${i}">${esc(x.text)}</span>
         <button class="del-x" data-tddel="${i}" aria-label="Remove">✕</button></div>`).join('')
       || '<div class="empty">Nothing yet. What do you want to get done today?</div>'}</div>
-    ${list.length ? `<div class="td-foot"><span>${nDone} / ${list.length} done</span>${nDone ? '<button class="btn sm" id="td-clear">Clear done</button>' : ''}</div>` : ''}
-    ${modeBar()}
-  </div>`;
-  bindModeBar(p);
-  const put = l => { C.ensureDay(S, d).todo = l; C.cleanDay(S, d); save(); renderSimple(); };
-  $('td-form').onsubmit = e => {
-    e.preventDefault();
-    const v = $('td-new').value.trim(); if (!v) return;
-    $('td-new').value = ''; put([...list, { text: v }]);
-    $('td-new').focus();
-  };
-  p.querySelectorAll('[data-tdtoggle]').forEach(b => b.onclick = () => {
+    ${list.length ? `<div class="td-foot"><span>${nDone} / ${list.length} done</span>${nDone ? '<button class="btn sm" id="td-clear">Clear done</button>' : ''}</div>` : ''}`;
+  body.querySelectorAll('[data-tdtoggle]').forEach(b => b.onclick = () => {
     const i = +b.dataset.tdtoggle, l = list.map(x => ({ ...x }));
     l[i].done = !l[i].done || undefined;
-    if (l[i].done) { sfx('check'); buzz(); burst(p.querySelector(`.td[data-i="${i}"] .td-box`), S.settings.theme); } else sfx('uncheck');
-    put(l);
+    if (l[i].done) { sfx('check'); buzz(); burst(body.querySelector(`.td[data-i="${i}"] .td-box`), S.settings.theme); } else sfx('uncheck');
+    putTodo(d, l);
   });
-  p.querySelectorAll('[data-tddel]').forEach(b => b.onclick = () => put(list.filter((_, i) => i !== +b.dataset.tddel)));
-  if ($('td-clear')) $('td-clear').onclick = () => put(list.filter(x => !x.done));
-  if ($('td-carry')) $('td-carry').onclick = () => put(left.map(x => ({ text: x.text })));
-  $('td-exit').onclick = () => setSimple(false);
+  body.querySelectorAll('[data-tddel]').forEach(b => b.onclick = () => putTodo(d, list.filter((_, i) => i !== +b.dataset.tddel)));
+  if ($('td-clear')) $('td-clear').onclick = () => putTodo(d, list.filter(x => !x.done));
+  if ($('td-carry')) $('td-carry').onclick = () => putTodo(d, left.map(x => ({ text: x.text })));
 }
 
 // ---------- pause ----------
