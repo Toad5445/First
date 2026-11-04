@@ -902,20 +902,17 @@ body.paused #fx::before,body.paused #fx::after{animation-play-state:paused!impor
 
 /* ================= SIMPLE MODE ================= */
 body.simple #hdr,body.simple #tabs{display:none}
+body.simple #pane-workout{max-width:640px;margin:16px auto 0}
 .simple{max-width:640px;margin:0 auto}
 .simple-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
 .simple-head h2{margin:4px 0 0}
 .td-add{display:flex;gap:8px;margin-bottom:14px}
 .td-add input{flex:1;min-width:0}
 .td-carry{margin-bottom:12px}
-.td{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--win-border)}
-.td:last-child{border-bottom:0}
-.td-box{flex:none;width:24px;height:24px;border:2px solid var(--a);border-radius:calc(var(--radius) / 2 + 2px);background:transparent;cursor:pointer;display:grid;place-items:center;padding:0}
-.td-box i{width:12px;height:7px;border-left:2.5px solid var(--on-a);border-bottom:2.5px solid var(--on-a);transform:rotate(-45deg) translate(1px,-1px);opacity:0}
-.td.done .td-box{background:var(--a)}
-.td.done .td-box i{opacity:1}
-.td-text{flex:1;min-width:0;font-size:17px;cursor:pointer;overflow-wrap:anywhere}
-.td.done .td-text{color:var(--dim);text-decoration:line-through}
+.td-list .quest{margin-bottom:8px}
+.td .qname{flex:1;min-width:0;cursor:pointer;overflow-wrap:anywhere}
+.td .box{cursor:pointer}
+.simple-tabs{margin:0 0 14px}
 .td-foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;color:var(--dim);font-size:14px}
 
 /* ================= WORKOUT ================= */

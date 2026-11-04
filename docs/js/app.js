@@ -111,7 +111,7 @@ function render() {
   recompute();
   // Simple mode: just today's to-do list, the game hidden (and paused) behind it
   document.body.classList.toggle('simple', !!S.simple);
-  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('hidden', S.simple ? p.id !== 'pane-simple' : p.id !== 'pane-' + view.tab));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('hidden', S.simple ? !(p.id === 'pane-simple' || (view.simpleTab === 'workout' && p.id === 'pane-workout')) : p.id !== 'pane-' + view.tab));
   if (S.simple) { renderSimple(); return; }
   renderHeader();
   renderTabs();
@@ -843,11 +843,13 @@ function renderSimple() {
     p.innerHTML = `<div class="win simple">
       <div class="simple-head"><div><div class="sys-label">${esc(C.prettyDate(d))}</div><h2>Today</h2></div>
         <button class="btn sm" id="td-exit">Back to the game</button></div>
+      <div class="subtabs simple-tabs"><button data-stab="todo">To-do</button><button data-stab="workout">Workout</button></div>
       <form class="td-add" id="td-form"><input type="text" id="td-new" maxlength="120" placeholder="Add a task…" autocomplete="off" enterkeyhint="done"><button class="btn solid" type="submit" id="td-addbtn">Add</button></form>
       <div id="td-body"></div>
       <div id="td-modes"></div>
     </div>`;
     $('td-exit').onclick = () => setSimple(false);
+    p.querySelectorAll('[data-stab]').forEach(b => b.onclick = () => { view.simpleTab = b.dataset.stab; render(); });
     // pressing Add mustn't steal focus from the box (that would close the keyboard)
     $('td-addbtn').addEventListener('pointerdown', e => e.preventDefault());
     $('td-form').onsubmit = e => {
@@ -861,7 +863,10 @@ function renderSimple() {
     };
   }
   $('td-modes').innerHTML = modeBar(); bindModeBar($('td-modes'));
-  renderTodoList(d);
+  const wo = view.simpleTab === 'workout';
+  p.querySelectorAll('[data-stab]').forEach(b => b.classList.toggle('on', b.dataset.stab === (wo ? 'workout' : 'todo')));
+  $('td-form').classList.toggle('hidden', wo); $('td-body').classList.toggle('hidden', wo);
+  if (wo) renderWorkout(); else renderTodoList(d);
 }
 function putTodo(d, l) { C.ensureDay(S, d).todo = l; C.cleanDay(S, d); save(); renderTodoList(d); }
 function renderTodoList(d) {
@@ -870,16 +875,16 @@ function renderTodoList(d) {
   const left = ((S.days[y] && S.days[y].todo) || []).filter(x => !x.done && !list.some(l => l.text === x.text));
   const nDone = list.filter(x => x.done).length;
   body.innerHTML = `${left.length && !list.length ? `<button class="btn sm td-carry" id="td-carry">Bring over ${left.length} unfinished from yesterday</button>` : ''}
-    <div class="td-list">${list.map((x, i) => `<div class="td ${x.done ? 'done' : ''}" data-i="${i}">
-        <button class="td-box" data-tdtoggle="${i}" aria-label="${x.done ? 'Mark not done' : 'Mark done'}"><i></i></button>
-        <span class="td-text" data-tdtoggle="${i}">${esc(x.text)}</span>
+    <div class="td-list">${list.map((x, i) => `<div class="quest td ${x.done ? 'done' : ''}" data-i="${i}">
+        <div class="box" data-tdtoggle="${i}" role="button" aria-label="${x.done ? 'Mark not done' : 'Mark done'}"><i></i></div>
+        <div class="qname" data-tdtoggle="${i}"><span class="qn">${esc(x.text)}</span></div>
         <button class="del-x" data-tddel="${i}" aria-label="Remove">✕</button></div>`).join('')
       || '<div class="empty">Nothing yet. What do you want to get done today?</div>'}</div>
     ${list.length ? `<div class="td-foot"><span>${nDone} / ${list.length} done</span>${nDone ? '<button class="btn sm" id="td-clear">Clear done</button>' : ''}</div>` : ''}`;
   body.querySelectorAll('[data-tdtoggle]').forEach(b => b.onclick = () => {
     const i = +b.dataset.tdtoggle, l = list.map(x => ({ ...x }));
     l[i].done = !l[i].done || undefined;
-    if (l[i].done) { sfx('check'); buzz(); burst(body.querySelector(`.td[data-i="${i}"] .td-box`), S.settings.theme); } else sfx('uncheck');
+    if (l[i].done) { sfx('check'); buzz(); burst(body.querySelector(`.td[data-i="${i}"] .box`), S.settings.theme); } else sfx('uncheck');
     putTodo(d, l);
   });
   body.querySelectorAll('[data-tddel]').forEach(b => b.onclick = () => putTodo(d, list.filter((_, i) => i !== +b.dataset.tddel)));
