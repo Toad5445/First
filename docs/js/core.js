@@ -23,12 +23,23 @@ export const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n
 export const logicalToday = (startHour, now = Date.now()) => fmt(new Date(now - startHour * 3600000));
 export const prettyDate = s => { const d = parse(s); return `${WDL[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()}`; };
 
-// Sentence case for typed tasks: tidy spaces and capitalize the first letter. Nothing already capitalized is
-// lowered, so "FL studio" or "Call Sam" stay as typed. A task starting with a number ("30 min walk") is left alone.
-export function sentenceCase(t) {
-  t = String(t || '').replace(/\s+/g, ' ').trim();
-  return t.replace(/^\p{Ll}/u, c => c.toUpperCase());
+// Title case for typed tasks, the way book titles do it: every word gets a capital first letter except short
+// connecting words (and, a, the, of, to...), which stay lower case unless they're the first or last word.
+// Nothing already capitalized is lowered ("FL studio" -> "FL Studio"), and a word that starts with a number
+// ("30", "3x10") is left alone. Hyphenated parts are capitalized too ("follow-up" -> "Follow-Up").
+const SMALL_WORDS = new Set('a an the and but or nor for so yet as at by in of off on per to up via vs with from into onto over than'.split(' '));
+export function taskCase(t) {
+  const words = String(t || '').replace(/\s+/g, ' ').trim().split(' ');
+  const firstAlpha = words.findIndex(w => /\p{L}/u.test(w)), lastAlpha = words.map(w => /\p{L}/u.test(w)).lastIndexOf(true);
+  return words.map((w, i) => {
+    const core = w.replace(/^[^\p{L}\p{N}]+/u, '').toLowerCase();
+    const keepSmall = SMALL_WORDS.has(core) && i !== firstAlpha && i !== lastAlpha && !/[:\u2014]$/.test(words[i - 1] || '');
+    if (keepSmall) return w;
+    // capitalize the first letter of each hyphen-separated part, but only where that part starts with a letter
+    return w.split('-').map(part => part.replace(/^([^\p{L}\p{N}]*)(\p{Ll})/u, (m, pre, c) => pre + c.toUpperCase())).join('-');
+  }).join(' ');
 }
+export const sentenceCase = taskCase;   // older name
 export function uid() { return 'q' + Math.random().toString(36).slice(2, 9); }
 
 export function suggestStat(name) {

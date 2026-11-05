@@ -176,11 +176,15 @@ test('a pause can start in the past, covering days already away', () => {
   assert.deepEqual(S.pauses, [{ from: '2026-10-29', to: '2026-11-04' }]);
 });
 
-test('to-do text gets a capital first letter and keeps what was already capitalized', () => {
-  assert.equal(C.sentenceCase('laundry'), 'Laundry');
-  assert.equal(C.sentenceCase('work on FL studio'), 'Work on FL studio');
-  assert.equal(C.sentenceCase('  call   Sam about the trip '), 'Call Sam about the trip');
-  assert.equal(C.sentenceCase('EMAIL landlord'), 'EMAIL landlord');
-  assert.equal(C.sentenceCase('30 min walk'), '30 min walk');
-  assert.equal(C.sentenceCase('édit video'), 'Édit video');
+test('to-do text is title-cased like a book title, keeping existing capitals', () => {
+  assert.equal(C.taskCase('laundry'), 'Laundry');
+  assert.equal(C.taskCase('work on FL studio'), 'Work on FL Studio');
+  assert.equal(C.taskCase('  call   mom about the trip '), 'Call Mom About the Trip');
+  assert.equal(C.taskCase('30 min walk'), '30 Min Walk');
+  assert.equal(C.taskCase('3x10 push-ups and a stretch'), '3x10 Push-Ups and a Stretch');
+  assert.equal(C.taskCase('the end of the road'), 'The End of the Road');
+  assert.equal(C.taskCase('pick something to work on'), 'Pick Something to Work On');
+  assert.equal(C.taskCase("mom's birthday gift"), "Mom's Birthday Gift");
+  assert.equal(C.taskCase('EMAIL landlord'), 'EMAIL Landlord');
+  assert.equal(C.taskCase('édit video'), 'Édit Video');
 });
