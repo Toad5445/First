@@ -854,7 +854,7 @@ function renderSimple() {
     $('td-addbtn').addEventListener('pointerdown', e => e.preventDefault());
     $('td-form').onsubmit = e => {
       e.preventDefault();
-      const inp = $('td-new'), v = inp.value.trim();
+      const inp = $('td-new'), v = C.sentenceCase(inp.value);
       inp.focus();
       if (!v) return;
       inp.value = '';
@@ -877,7 +877,7 @@ function renderTodoList(d) {
   body.innerHTML = `${left.length && !list.length ? `<button class="btn sm td-carry" id="td-carry">Bring over ${left.length} unfinished from yesterday</button>` : ''}
     <div class="td-list">${list.map((x, i) => `<div class="quest td ${x.done ? 'done' : ''}" data-i="${i}">
         <div class="box" data-tdtoggle="${i}" role="button" aria-label="${x.done ? 'Mark not done' : 'Mark done'}"><i></i></div>
-        <div class="qname" data-tdtoggle="${i}"><span class="qn">${esc(x.text)}</span></div>
+        <div class="qname" data-tdtoggle="${i}"><span class="qn">${esc(C.sentenceCase(x.text))}</span></div>
         <button class="del-x" data-tddel="${i}" aria-label="Remove">✕</button></div>`).join('')
       || '<div class="empty">Nothing yet. What do you want to get done today?</div>'}</div>
     ${list.length ? `<div class="td-foot"><span>${nDone} / ${list.length} done</span>${nDone ? '<button class="btn sm" id="td-clear">Clear done</button>' : ''}</div>` : ''}`;
@@ -889,7 +889,7 @@ function renderTodoList(d) {
   });
   body.querySelectorAll('[data-tddel]').forEach(b => b.onclick = () => putTodo(d, list.filter((_, i) => i !== +b.dataset.tddel)));
   if ($('td-clear')) $('td-clear').onclick = () => putTodo(d, list.filter(x => !x.done));
-  if ($('td-carry')) $('td-carry').onclick = () => putTodo(d, left.map(x => ({ text: x.text })));
+  if ($('td-carry')) $('td-carry').onclick = () => putTodo(d, left.map(x => ({ text: C.sentenceCase(x.text) })));
 }
 
 // ---------- pause ----------

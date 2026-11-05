@@ -175,3 +175,12 @@ test('a pause can start in the past, covering days already away', () => {
   C.setPaused(S, false, NOWB);
   assert.deepEqual(S.pauses, [{ from: '2026-10-29', to: '2026-11-04' }]);
 });
+
+test('to-do text gets a capital first letter and keeps what was already capitalized', () => {
+  assert.equal(C.sentenceCase('laundry'), 'Laundry');
+  assert.equal(C.sentenceCase('work on FL studio'), 'Work on FL studio');
+  assert.equal(C.sentenceCase('  call   Sam about the trip '), 'Call Sam about the trip');
+  assert.equal(C.sentenceCase('EMAIL landlord'), 'EMAIL landlord');
+  assert.equal(C.sentenceCase('30 min walk'), '30 min walk');
+  assert.equal(C.sentenceCase('édit video'), 'Édit video');
+});

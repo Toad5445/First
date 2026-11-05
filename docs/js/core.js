@@ -23,6 +23,12 @@ export const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n
 export const logicalToday = (startHour, now = Date.now()) => fmt(new Date(now - startHour * 3600000));
 export const prettyDate = s => { const d = parse(s); return `${WDL[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()}`; };
 
+// Sentence case for typed tasks: tidy spaces and capitalize the first letter. Nothing already capitalized is
+// lowered, so "FL studio" or "Call Sam" stay as typed. A task starting with a number ("30 min walk") is left alone.
+export function sentenceCase(t) {
+  t = String(t || '').replace(/\s+/g, ' ').trim();
+  return t.replace(/^\p{Ll}/u, c => c.toUpperCase());
+}
 export function uid() { return 'q' + Math.random().toString(36).slice(2, 9); }
 
 export function suggestStat(name) {
