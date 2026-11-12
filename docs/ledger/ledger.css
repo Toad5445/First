@@ -2,6 +2,9 @@
 *,*::before,*::after{box-sizing:border-box;margin:0}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation}
 body{min-height:100vh;min-height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+/* iOS fills the strip under the home bar (outside the app's drawing area) with the page colour, so the page
+   colour is each theme's bottom-edge colour; the theme art covers everything else */
+html,body{background-color:var(--edge,#e9dfcc)!important}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
 input,select{outline:none}

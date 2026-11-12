@@ -1,12 +1,13 @@
 // Ledger's offline support, separate from The System's (this one only covers /ledger/).
 // Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'l1.4.5';
+const VERSION = 'l1.4.6';
 const SHELL = ['./', 'index.html', 'ledger.css', 'ledger.js', 'themes.js', 'lsync.js', 'manifest.webmanifest',
   'icons/icon-192-v4.png', 'icons/favicon-32-v4.png', 'icons/apple-touch-icon-v4.png', 'art/chain.webp', '../vendor/firebase.js'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open('ledger-shell-' + VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))));
+  // take over as soon as the new files are cached; the page reloads itself onto the new version
+  e.waitUntil(caches.open('ledger-shell-' + VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('ledger-shell-') && k !== 'ledger-shell-' + VERSION).map(k => caches.delete(k))))

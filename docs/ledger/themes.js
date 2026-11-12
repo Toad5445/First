@@ -72,7 +72,7 @@ const aeroClock = () => `<svg viewBox="0 0 100 100" class="ae-clock" aria-hidden
   <path d="M10 46 A40 40 0 0 1 90 46 Q50 34 10 46Z" fill="url(#aegls)" opacity=".75"/></svg>`;
 
 const aero = {
-  name: 'Aero', color: '#2164f5', edge: '#1f8a2a', check: 'gel',
+  name: 'Aero', color: '#2164f5', edge: '#74b454', check: 'gel',
   tabNames: ['Tasks', 'Workout', 'History', '<svg viewBox="0 0 24 24" class="gear" aria-label="Settings"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.7.1-1.3-.1-1.3 2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-2.2-1.3L15.4 2.6h-4l-.4 2.7a8 8 0 0 0-2.2 1.3l-2.5-1-2 3.5L6.4 10.7l-.1 1.3.1 1.3-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 2.2 1.3l.4 2.7h4l.4-2.7a8 8 0 0 0 2.2-1.3l2.5 1 2-3.5Z"/></svg>'],
   placeholder: 'Add a task…', addLabel: 'Add', empty: 'Nothing on the list yet. Type above to add your first task.',
   num: i => String(i).padStart(2, '0'),
