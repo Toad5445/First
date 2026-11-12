@@ -66,30 +66,43 @@ def march(o, d, links, tmax, steps=140):
     return t, hit
 
 # ---- environment: black studio, a cold blue-violet band at the horizon, a big soft key light above-left
+STYLE = os.environ.get('CSTYLE', 'neon')
+
 def env(r):
     x, y, z = r[:, 0], r[:, 1], r[:, 2]
     c = np.zeros_like(r)
-    c += np.array([.010, .011, .020]) * (1 + y[:, None])                      # deep navy black
-    band = np.exp(-((y - .02) / .075) ** 2)[:, None] * .7
-    hue = np.clip((x + 1) / 2, 0, 1)[:, None]                                 # blue on the left, violet on the right
-    c += band * (np.array([.36, .44, 1.25]) * (1 - hue) + np.array([.78, .45, 1.2]) * hue) * (.55 + .45 * np.exp(-(z - .6) ** 2 / .5))[:, None]
-    key = np.exp(-np.sum((r - norm(np.array([-.45, .72, .55]))) ** 2, 1) / .06)[:, None]
-    c += key * np.array([6.5, 6.6, 7.2])
+    c += np.array([.010, .011, .024]) * (1 + y[:, None])                      # deep navy black
+    # horizon band sweeping cyan -> electric blue -> violet -> magenta across the room
+    u = np.clip((x + 1) / 2, 0, 1)
+    stops = np.array([[0.1, 1.0, 1.6], [0.15, 0.32, 2.0], [0.75, 0.22, 1.9], [1.9, 0.18, 1.1]])
+    f = u * 3; i = np.minimum(f.astype(int), 2); fr = (f - i)[:, None]
+    hue = stops[i] * (1 - fr) + stops[i + 1] * fr
+    band = np.exp(-((y - .02) / .055) ** 2)[:, None] * 1.3
+    c += band * hue * (.6 + .4 * np.exp(-(z - .5) ** 2 / .6))[:, None]
+    key = np.exp(-np.sum((r - norm(np.array([-.45, .72, .55]))) ** 2, 1) / .05)[:, None]
+    c += key * np.array([5.0, 5.8, 8.0])                                      # cool white key, top left
     glint = np.exp(-np.sum((r - norm(np.array([.2, .3, 1.]))) ** 2, 1) / .012)[:, None]
-    c += glint * np.array([2.6, 2.7, 3.0])                                    # small softbox behind the camera
-    sky = np.clip(y - .25, 0, 1)[:, None]
-    c += sky * np.array([.05, .055, .085])
+    c += glint * np.array([2.4, 2.6, 3.2])
+    left = np.exp(-np.sum((r - norm(np.array([-1., .1, .25]))) ** 2, 1) / .06)[:, None]
+    c += left * np.array([.15, .95, 2.6])                                     # electric cyan-blue panel, left
+    rim = np.exp(-np.sum((r - norm(np.array([.95, -.05, -.2]))) ** 2, 1) / .05)[:, None]
+    c += rim * np.array([2.8, .25, 1.8])                                      # hot magenta rim, right
     strip = (np.exp(-((x - .55) / .05) ** 2) * np.clip(y + .3, 0, 1) * (z > -.2))[:, None]
-    c += strip * np.array([1.2, 1.15, 1.6])                                   # thin vertical strip light, right
-    rim = np.exp(-np.sum((r - norm(np.array([.9, -.15, -.4]))) ** 2, 1) / .08)[:, None]
-    c += rim * np.array([1.1, .55, 1.9])                                      # violet rim from behind
+    c += strip * np.array([1.3, .45, 2.6])                                    # violet strip light
+    sky = np.clip(y - .25, 0, 1)[:, None]
+    c += sky * np.array([.02, .025, .07])
     floor = np.clip(-y - .25, 0, 1)[:, None]
-    c = c * (1 - floor * .85) + floor * np.array([.006, .006, .012])
+    c = c * (1 - floor * .8) + floor * np.array([.005, .01, .06])              # blue bounce from below
     return c
 
 def chrome(n, v):
     cos = np.clip(-np.sum(n * v, 1), 0, 1)[:, None]
-    return np.array([.80, .82, .88]) + (1 - np.array([.80, .82, .88])) * (1 - cos) ** 5
+    base = np.array([.78, .80, .90])
+    F = base + (1 - base) * (1 - cos) ** 5
+    # thin-film sheen: the colour drifts with viewing angle, like anodised / oil-slick chrome
+    ph = 1.6 * (1 - cos) + .18 * n[:, 1:2]
+    film = .62 + .38 * np.cos(2 * np.pi * (ph + np.array([0, .33, .67])))
+    return F * (film * .55 + .45)
 
 def render():
     w, h = W * SS, H * SS
