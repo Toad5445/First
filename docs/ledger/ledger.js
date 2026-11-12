@@ -157,38 +157,171 @@ export function ytParse(raw) {
   return { id, list, start };
 }
 function videoSrc(v, autoplay) {
-  const q = new URLSearchParams({ rel: '0', modestbranding: '1', playsinline: '1' });
+  // YouTube's own controls are switched off; Ledger draws its own over the video and drives the player
+  // through YouTube's IFrame API, so they can match the theme and get out of the way quickly
+  const q = new URLSearchParams({ rel: '0', modestbranding: '1', playsinline: '1', controls: '0', disablekb: '1', fs: '0',
+    iv_load_policy: '3', enablejsapi: '1', origin: location.origin });
   if (v.start) q.set('start', v.start);
   if (autoplay) q.set('autoplay', '1');
   if (v.list) q.set('list', v.list);
   return `https://www.youtube-nocookie.com/embed/${v.id || 'videoseries'}?${q}`;
 }
-// builds (or removes) the player; called only when the video itself changes, so theme switches and
-// re-renders never restart playback
 // center layout only: the enlarge button folds the art column away and gives the video the room
 function theater() {
-  const on = !!(video.on && video.big && S.settings.layout === 'center' && ytParse(video.url));
+  const center = S.settings.layout === 'center' && video.on && ytParse(video.url);
+  const on = !!(center && video.big);
   document.body.classList.toggle('theater', on);
+  document.body.classList.toggle('video-left', !!(center && video.side === 'left'));
   const b = document.querySelector('#vdock .vexpand');
   if (b) { b.setAttribute('aria-pressed', on); b.setAttribute('aria-label', on ? 'Make video smaller' : 'Enlarge video'); b.title = on ? 'Smaller' : 'Enlarge'; }
+  const w = document.querySelector('#vdock .vswap');
+  if (w) { const l = video.side === 'left'; w.setAttribute('aria-label', l ? 'Move video to the right' : 'Move video to the left'); w.title = l ? 'Move right' : 'Move left'; }
 }
+// moving between sides is a change of grid areas, which CSS can't animate, so slide each piece from where
+// it was to where it lands (FLIP)
+function glide(change) {
+  const els = [...document.querySelectorAll('.stage > .panel, .stage > .brand, .stage > .vdock')];
+  const first = els.map(e => e.getBoundingClientRect());
+  document.body.classList.add('no-col-anim');
+  change();
+  els.forEach((e, i) => {
+    const l = e.getBoundingClientRect(), f = first[i];
+    if (!l.width || (Math.abs(f.left - l.left) < 1 && Math.abs(f.top - l.top) < 1)) return;
+    e.animate([{ transform: `translate(${f.left - l.left}px, ${f.top - l.top}px)` }, { transform: 'none' }],
+      { duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 620, easing: 'cubic-bezier(.65,0,.35,1)' });
+  });
+  requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove('no-col-anim')));
+}
+
+const VI = {
+  play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg>',
+  vol: '<svg viewBox="0 0 24 24"><path d="M3.5 9h4l5-4.5v15l-5-4.5h-4z"/><path class="ln" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/></svg>',
+  muted: '<svg viewBox="0 0 24 24"><path d="M3.5 9h4l5-4.5v15l-5-4.5h-4z"/><path class="ln" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
+  full: '<svg viewBox="0 0 24 24"><path class="ln" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>',
+  exit: '<svg viewBox="0 0 24 24"><path class="ln" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>'
+};
+const RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
+let yt = null, ytTimer = null, ytApi = null;
+const tfmt = t => { t = Math.max(0, Math.floor(t || 0)); const h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, s = t % 60; return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`; };
+function loadYtApi() {
+  if (ytApi) return ytApi;
+  ytApi = new Promise((res, rej) => {
+    if (window.YT && window.YT.Player) return res(window.YT);
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { prev && prev(); res(window.YT); };
+    const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; sc.onerror = rej;
+    document.head.appendChild(sc);
+    setTimeout(() => rej(new Error('timeout')), 9000);
+  });
+  return ytApi;
+}
+// Ledger's own controls: shown while the pointer moves over the video, gone ~1s after it stops (2s when
+// paused) and straight away when it leaves. Tap on a phone to show them, tap again to play/pause.
+function wireControls(scr, iframe) {
+  const ctl = scr.querySelector('.vctl'), hit = scr.querySelector('.vhit'), prog = scr.querySelector('.vprog');
+  const fill = scr.querySelector('.vfill'), buf = scr.querySelector('.vbuf'), knob = scr.querySelector('.vknob');
+  const time = scr.querySelector('.vtime'), bPlay = scr.querySelector('.vplay'), bMute = scr.querySelector('.vmute');
+  const bRate = scr.querySelector('.vrate'), menu = scr.querySelector('.vmenu'), bFull = scr.querySelector('.vfull');
+  let hideT = null, playing = false, dragging = false, touchShown = 0;
+  const show = (ms) => {
+    scr.classList.add('show'); clearTimeout(hideT);
+    hideT = setTimeout(() => { if (!dragging && menu.hidden) scr.classList.remove('show'); }, ms || (playing ? 1100 : 2200));
+  };
+  const hide = () => { clearTimeout(hideT); if (!dragging) { scr.classList.remove('show'); menu.hidden = true; } };
+  scr.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') show(); });
+  scr.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hide(); });
+  const toggle = () => { if (!yt || !yt.getPlayerState) return; playing ? yt.pauseVideo() : yt.playVideo(); };
+  hit.addEventListener('click', e => {
+    if (e.pointerType === 'touch' || (e.pointerType === undefined && matchMedia('(hover: none)').matches)) {
+      if (!scr.classList.contains('show') || Date.now() - touchShown < 300) { touchShown = Date.now(); show(2600); return; }
+    }
+    toggle(); show();
+  });
+  hit.addEventListener('dblclick', () => bFull.click());
+  bPlay.onclick = () => { toggle(); show(); };
+  bMute.onclick = () => { if (!yt) return; yt.isMuted() ? yt.unMute() : yt.mute(); setTimeout(paint, 60); show(); };
+  bRate.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; show(4000); };
+  menu.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { if (yt) yt.setPlaybackRate(+b.dataset.rate); menu.hidden = true; setTimeout(paint, 80); show(); });
+  const canFull = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  if (!canFull) bFull.hidden = true;
+  bFull.onclick = () => {
+    const fs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fs) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else (scr.requestFullscreen || scr.webkitRequestFullscreen).call(scr);
+  };
+  document.addEventListener('fullscreenchange', () => { bFull.innerHTML = document.fullscreenElement === scr ? VI.exit : VI.full; });
+  // scrubbing
+  const seekAt = x => { const r = prog.getBoundingClientRect(), f = Math.min(1, Math.max(0, (x - r.left) / r.width)); return f; };
+  prog.addEventListener('pointerdown', e => {
+    if (!yt || !yt.getDuration) return; dragging = true; prog.classList.add('drag'); prog.setPointerCapture(e.pointerId);
+    const f = seekAt(e.clientX); fill.style.width = knob.style.left = f * 100 + '%';
+  });
+  prog.addEventListener('pointermove', e => { if (!dragging) return; const f = seekAt(e.clientX); fill.style.width = knob.style.left = f * 100 + '%'; time.textContent = `${tfmt(f * yt.getDuration())} / ${tfmt(yt.getDuration())}`; });
+  prog.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; prog.classList.remove('drag'); yt.seekTo(seekAt(e.clientX) * yt.getDuration(), true); show(); });
+  function paint() {
+    if (!yt || !yt.getDuration) return;
+    const d = yt.getDuration() || 0, t = yt.getCurrentTime() || 0;
+    if (!dragging && d) { fill.style.width = knob.style.left = (t / d * 100) + '%'; time.textContent = `${tfmt(t)} / ${tfmt(d)}`; }
+    buf.style.width = ((yt.getVideoLoadedFraction && yt.getVideoLoadedFraction()) || 0) * 100 + '%';
+    bMute.innerHTML = yt.isMuted && yt.isMuted() ? VI.muted : VI.vol;
+    const r = yt.getPlaybackRate ? yt.getPlaybackRate() : 1; bRate.textContent = `${r}×`;
+    menu.querySelectorAll('[data-rate]').forEach(b => b.classList.toggle('on', +b.dataset.rate === r));
+  }
+  loadYtApi().then(YT => {
+    if (!iframe.isConnected) return;
+    yt = new YT.Player(iframe, { events: {
+      onReady: () => { scr.classList.add('ready'); paint(); },
+      onStateChange: e => {
+        playing = e.data === 1 || e.data === 3;
+        if (e.data === 1) scr.classList.remove('fresh');   // first play: the poster gives way to the video
+        scr.classList.toggle('paused', !playing);
+        bPlay.innerHTML = playing ? VI.pause : VI.play;
+        bPlay.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+        if (e.data === 2 || e.data === 0) show(); paint();
+      },
+      onError: () => { scr.classList.add('failed'); }
+    } });
+    clearInterval(ytTimer); ytTimer = setInterval(paint, 250);
+  }).catch(() => {
+    // the API didn't load: fall back to YouTube's own controls
+    scr.classList.add('native'); const u = new URL(iframe.src); u.searchParams.set('controls', '1'); u.searchParams.delete('fs'); iframe.src = u;
+  });
+}
+
+// builds (or removes) the player; called only when the video itself changes, so theme switches and
+// re-renders never restart playback
 function placeVideo(autoplay) {
   const dock = $('vdock'), v = video.on && ytParse(video.url);
   document.body.classList.toggle('has-video', !!v);
-  if (!v) { dock.hidden = true; dock.innerHTML = ''; theater(); return; }
+  if (!v) { dock.hidden = true; dock.innerHTML = ''; yt = null; clearInterval(ytTimer); theater(); return; }
   const src = videoSrc(v, autoplay);
   const frame = dock.querySelector('iframe');
-  if (frame && frame.dataset.key === video.url) { dock.hidden = false; return; }
+  if (frame && frame.dataset.key === video.url) { dock.hidden = false; theater(); return; }
   dock.innerHTML = `<div class="vframe">
       <i class="vc tl"></i><i class="vc tr"></i><i class="vc bl"></i><i class="vc br"></i><i class="vpin" aria-hidden="true"></i>
       <div class="vbar"><span class="orbs" aria-hidden="true"><i></i><i></i><i></i></span><span class="vlabel"></span>
+        <span class="vtools"><button class="vswap" aria-label="Move video to the left" title="Move left"><svg viewBox="0 0 16 16"><path d="M5.5 3 2.5 6l3 3M2.5 6h11M10.5 7l3 3-3 3M13.5 10h-11"/></svg></button>
         <button class="vexpand" aria-label="Enlarge video" title="Enlarge"><svg viewBox="0 0 16 16" class="i-grow"><path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9"/></svg><svg viewBox="0 0 16 16" class="i-shrink"><path d="M13 7H9V3M9 7l4.5-4.5M3 9h4v4M7 9l-4.5 4.5"/></svg></button>
-        <button class="vclose" aria-label="Hide video">${X_ICON}</button></div>
-      <div class="vscreen"><iframe src="${esc(src)}" data-key="${esc(video.url)}" title="YouTube video" loading="lazy"
-        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>`;
+        <button class="vclose" aria-label="Hide video">${X_ICON}</button></span></div>
+      <div class="vscreen paused fresh"><iframe src="${esc(src)}" data-key="${esc(video.url)}" title="YouTube video"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+        ${v.id ? `<img class="vposter" alt="" src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'">` : ''}
+        <div class="vhit" aria-hidden="true"></div>
+        <span class="vbig" aria-hidden="true">${VI.play}</span>
+        <div class="vctl"><button class="vplay" aria-label="Play">${VI.play}</button>
+          <span class="vtime">0:00 / 0:00</span>
+          <div class="vprog" role="slider" aria-label="Seek"><i class="vrail"></i><i class="vbuf"></i><i class="vfill"></i><i class="vknob"></i></div>
+          <button class="vmute" aria-label="Mute">${VI.vol}</button>
+          <button class="vrate" aria-label="Playback speed">1×</button>
+          <button class="vfull" aria-label="Full screen">${VI.full}</button>
+          <div class="vmenu" hidden>${RATES.map(r => `<button data-rate="${r}">${r === 1 ? 'Normal' : r + '×'}</button>`).join('')}</div></div>
+      </div></div>`;
   dock.hidden = false;
   dock.querySelector('.vclose').onclick = () => { video.on = false; videoSave(); placeVideo(); if (view.tab === 'settings') renderPanel(); };
   dock.querySelector('.vexpand').onclick = () => { video.big = !video.big; videoSave(); theater(); };
+  dock.querySelector('.vswap').onclick = () => glide(() => { video.side = video.side === 'left' ? 'right' : 'left'; videoSave(); theater(); });
+  wireControls(dock.querySelector('.vscreen'), dock.querySelector('iframe'));
   theater();
   dock.querySelector('.vlabel').textContent = T().vlabel || '';
 }
