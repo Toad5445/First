@@ -1,8 +1,8 @@
 // Ledger's offline support, separate from The System's (this one only covers /ledger/).
 // Bump VERSION on every release so phones pick up the new files.
-const VERSION = 'l1.4.1';
+const VERSION = 'l1.4.2';
 const SHELL = ['./', 'index.html', 'ledger.css', 'ledger.js', 'themes.js', 'lsync.js', 'manifest.webmanifest',
-  'icons/icon-192-v3.png', 'icons/favicon-32-v3.png', 'icons/apple-touch-icon-v3.png', 'art/chain.webp', '../vendor/firebase.js'];
+  'icons/icon-192-v4.png', 'icons/favicon-32-v4.png', 'icons/apple-touch-icon-v4.png', 'art/chain.webp', '../vendor/firebase.js'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', e => {
