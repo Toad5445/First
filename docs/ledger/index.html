@@ -24,8 +24,7 @@
     const s = JSON.parse(localStorage.getItem('ledger-v1')), t = s && s.settings && s.settings.theme;
     const c = { aero: '#2164f5', cyber: '#070709', dark: '#0e0905', light: '#ede4d3' }[t];
     if (c) document.querySelector('meta[name=theme-color]').content = c;
-    const e = { aero: '#74b454', cyber: '#030305', dark: '#030202', light: '#e9dfcc' }[t];
-    if (e) document.documentElement.style.setProperty('--edge', e);
+    if (c) document.documentElement.dataset.theme = t;   // the page behind the art shows this theme's backdrop
   } catch (e) {}
 </script>
 </head>

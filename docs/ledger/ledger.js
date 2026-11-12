@@ -144,7 +144,7 @@ function render() {
   renderPanel(c);
   const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = t.color;
   // what shows behind the art, e.g. in the iPhone home-bar strip, is the colour of the theme's bottom edge
-  document.documentElement.style.setProperty('--edge', t.edge);
+  document.documentElement.dataset.theme = st.theme;
   tickClocks();
 }
 
@@ -592,20 +592,21 @@ Sync.initSync({
   onError: () => {}
 });
 
-// Home-screen app on an iPhone: the view stops short of the screen's bottom edge (the home-bar strip).
-// Measure the difference and let the backdrop extend through it.
+// The art is sized to the full screen by script: an iPhone home-screen app can start with fixed layers sized
+// to a stale, shorter screen, which left an unpainted strip above the home bar until the layout changed.
 function fitArt() {
+  let h = Math.max(innerHeight, document.documentElement.clientHeight);
   const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-  let gap = 0;
   if (standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
     const full = innerWidth > innerHeight ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
-    gap = Math.max(0, Math.min(140, full - innerHeight));
+    h = Math.max(h, full);
   }
-  document.documentElement.style.setProperty('--art-gap', gap + 'px');
+  document.documentElement.style.setProperty('--art-h', h + 'px');
 }
 fitArt();
-addEventListener('resize', fitArt);
-addEventListener('orientationchange', () => setTimeout(fitArt, 300));
+for (const ev of ['resize', 'orientationchange', 'pageshow', 'load']) addEventListener(ev, () => { fitArt(); setTimeout(fitArt, 250); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) fitArt(); });
+for (const ms of [50, 300, 1000]) setTimeout(fitArt, ms);   // iOS settles the real size a moment after launch
 // Safari in a browser tab ignores user-scalable=no, so stop pinch-zoom here too (the layout is built for the screen it's on)
 for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
 render();

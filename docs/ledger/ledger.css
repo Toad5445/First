@@ -2,19 +2,24 @@
 *,*::before,*::after{box-sizing:border-box;margin:0}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation}
 body{min-height:100vh;min-height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
-/* iOS fills the strip under the home bar (outside the app's drawing area) with the page colour, so the page
-   colour is each theme's bottom-edge colour; the theme art covers everything else */
-html,body{background-color:var(--edge,#e9dfcc)!important}
+/* Behind the art (and for the instant before it's drawn) the page shows a copy of the theme's own backdrop,
+   so opening the app looks like the theme fading in rather than a flat colour */
+html{min-height:100%;background:#ede4d3}
+html[data-theme=aero]{background:linear-gradient(180deg,#1f63f5 0%,#4f93ff 24%,#9fc8ff 50%,#d9eeff 72%,#effaff 88%,#9fd77a 100%)}
+html[data-theme=cyber]{background:#030305}
+html[data-theme=dark]{background:radial-gradient(70% 60% at 50% 45%,#100d0b 0%,#070605 60%,#020202 100%) #040303}
+html[data-theme=light]{background:radial-gradient(90% 70% at 70% 40%,#f6f0e4,#f0e7d7 70%,#e9dfcc) #ede4d3}
+body{background:transparent!important}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
 input,select{outline:none}
 a{color:inherit}
 svg{display:block}
 #art{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-/* Opened from an iPhone home screen, iOS sizes fixed layers to stop above the home-bar strip; ledger.js
-   measures that gap and the backdrop reaches down through it, so the art runs to the very bottom of the
-   screen the same way it runs up under the status bar */
-#art{bottom:calc(-1 * var(--art-gap,0px))}
+/* An iPhone home-screen app can open with fixed layers sized to a stale, shorter screen (they only correct
+   after the layout changes), leaving a strip above the home bar. ledger.js sets the art's height to the real
+   full-screen height instead of trusting that. */
+#art{bottom:auto;height:var(--art-h,100%)}
 #art>*{position:absolute}
 /* Installed on a desktop, Ledger draws under the window's title bar (Window Controls Overlay): the theme's
    own background runs right up behind the minimise / close buttons. This strip is the part you drag. */
