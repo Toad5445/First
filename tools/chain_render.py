@@ -6,7 +6,7 @@ links reflect each other where they cross. Run: python3 tools/chain_render.py [o
 """
 import sys, math
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 import os
 W, H, SS = int(os.environ.get("CW", 640)), int(os.environ.get("CH", 1400)), int(os.environ.get("CSS", 2))   # output size, supersampling
@@ -159,8 +159,30 @@ def render():
     rgb = np.where(al > 0, a[..., :3] / np.maximum(al, 1e-6), 0)
     return Image.fromarray(np.dstack([np.clip(rgb, 0, 255), a[..., 3]]).astype(np.uint8), 'RGBA')
 
+def blur(arr, r):
+    # gaussian blur of a float HxWx3 array (0..1) via PIL, channel by channel
+    ch = [np.asarray(Image.fromarray(np.clip(arr[..., k] * 255, 0, 255).astype(np.uint8), 'L').filter(ImageFilter.GaussianBlur(r)), float) / 255 for k in range(3)]
+    return np.dstack(ch)
+
+def bloom(im):
+    # neon glow: highlights bleed light, and the whole chain gives off a soft coloured haze.
+    # Stored as extra light with its own alpha, so on the dark page it adds like real bloom.
+    a = np.asarray(im, float) / 255
+    al = a[..., 3:4]; pm = a[..., :3] * al
+    lum = pm.max(2, keepdims=True)
+    bright = pm * np.clip((lum - .42) / .5, 0, 1) * 1.5
+    k = W / 420     # glow radii were tuned at 420 px wide
+    glow = blur(bright, 5 * k) * .7 + blur(bright, 16 * k) * .6 + blur(bright, 42 * k) * .5
+    sat = pm.copy(); m = sat.mean(2, keepdims=True); sat = np.clip(m + (sat - m) * 1.8, 0, 1)   # haze in the chain's own colours
+    glow += blur(sat, 60 * k) * .55
+    out = pm + glow * (1 - al * .5)
+    oa = np.clip(np.maximum(al, out.max(2, keepdims=True)), 0, 1)
+    rgb = np.where(oa > 1e-4, out / np.maximum(oa, 1e-4), 0)
+    return Image.fromarray((np.dstack([np.clip(rgb, 0, 1), oa]) * 255 + .5).astype(np.uint8), 'RGBA')
+
 if __name__ == '__main__':
     out = sys.argv[1] if len(sys.argv) > 1 else 'docs/ledger/art/chain.webp'
     im = render()
+    if os.environ.get('CBLOOM', '1') == '1': im = bloom(im)
     im.save(out, quality=90, method=6) if out.endswith('.webp') else im.save(out)
     print('wrote', out, im.size)
