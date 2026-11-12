@@ -194,8 +194,8 @@ function glide(change) {
 }
 
 const VI = {
-  play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg>',
-  pause: '<svg viewBox="0 0 24 24"><path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/></svg>',
+  play: '<svg viewBox="0 0 24 24"><path d="M7.5 5.8c0-1.3 1.4-2 2.4-1.3l9.3 6.2c.9.6.9 2 0 2.6l-9.3 6.2c-1 .7-2.4 0-2.4-1.3z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><rect x="6" y="4.5" width="4.2" height="15" rx="1.3"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.3"/></svg>',
   vol: '<svg viewBox="0 0 24 24"><path d="M3.5 9h4l5-4.5v15l-5-4.5h-4z"/><path class="ln" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/></svg>',
   muted: '<svg viewBox="0 0 24 24"><path d="M3.5 9h4l5-4.5v15l-5-4.5h-4z"/><path class="ln" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
   full: '<svg viewBox="0 0 24 24"><path class="ln" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>',
@@ -300,7 +300,7 @@ function wireControls(scr, iframe) {
     bMute.innerHTML = yt.isMuted && yt.isMuted() ? VI.muted : VI.vol;
     const r = yt.getPlaybackRate ? yt.getPlaybackRate() : 1;
     const cq = QH[yt.getPlaybackQuality && yt.getPlaybackQuality()]; qnow.textContent = cq ? `· now ${qName(cq)}` : '';
-    qbadge.textContent = cq ? qName(cq) : ''; qbadge.classList.toggle('hd', cq >= 720);
+    qbadge.textContent = cq ? qName(cq) : ''; qbadge.classList.toggle('is-hd', cq >= 720);
     listQ();
     menu.querySelectorAll('[data-rate]').forEach(b => b.classList.toggle('on', +b.dataset.rate === r));
   }

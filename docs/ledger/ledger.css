@@ -771,9 +771,9 @@ body[data-theme=aero] .vfrost{background:radial-gradient(circle at 32% 26%,rgba(
 body[data-theme=cyber] .vfrost{background:rgba(6,6,12,.12);box-shadow:inset 0 0 0 1px rgba(138,149,255,.45),0 0 12px rgba(138,149,255,.25)}
 body[data-theme=dark] .vfrost{background:rgba(12,9,6,.14);box-shadow:inset 0 0 0 1px rgba(184,149,90,.55),0 0 14px rgba(220,150,70,.18)}
 body[data-theme=light] .vfrost{background:rgba(251,247,238,.16);box-shadow:inset 0 0 0 1px rgba(251,243,226,.55)}
-.vqb{flex:none;font:700 9.5px/1 var(--f-ui);letter-spacing:.04em;padding:3px 5px;border-radius:4px;border:1px solid currentColor;opacity:.75}
+.vqb{flex:none;align-self:center;height:auto;max-height:20px;box-sizing:border-box;font:700 9.5px/1 var(--f-ui);letter-spacing:.04em;padding:3px 5px;border-radius:4px;border:1px solid currentColor;opacity:.75}
 .vqb:empty{display:none}
-.vqb.hd{opacity:1}
+.vqb.is-hd{opacity:1}
 .vctl{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;gap:6px;padding:26px 10px 8px;color:#fff;
   opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .22s ease,transform .22s ease;
   background:linear-gradient(180deg,transparent,rgba(0,0,0,.6))}
@@ -812,16 +812,30 @@ body[data-theme=aero] .vctl{left:8px;right:8px;bottom:8px;padding:5px 8px;border
   background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(222,238,255,.72) 50%,rgba(205,228,255,.68) 52%,rgba(232,244,255,.78));
   border:1px solid rgba(255,255,255,.9);box-shadow:0 8px 22px rgba(10,40,120,.3),inset 0 1px 0 #fff;-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4)}
 body[data-theme=aero] .vctl button:hover{background:rgba(255,255,255,.7)}
-body[data-theme=aero] .vplay{color:#fff;border-radius:50%!important;width:30px;background:radial-gradient(circle at 50% 120%,#b6fff2 0,#34c6ff 42%,#1667e8 82%);box-shadow:inset 0 -2px 4px rgba(0,30,110,.4),inset 0 0 0 1px rgba(0,40,140,.35),0 2px 5px rgba(30,120,255,.4)}
-body[data-theme=aero] .vplay:hover{background:radial-gradient(circle at 50% 120%,#d0fff8 0,#4fd0ff 42%,#2a78f0 82%)!important}
+body[data-theme=aero] .vplay{position:relative;color:#fff;border-radius:50%!important;width:32px;height:32px!important;
+  background:radial-gradient(120% 80% at 50% 115%,#c8fff6 0,#5fdcff 28%,#2a9cff 52%,#1463e0 78%,#0b3fae);
+  box-shadow:inset 0 -3px 5px rgba(0,25,100,.45),inset 0 0 0 1px rgba(0,45,150,.55),0 0 0 2px rgba(255,255,255,.9),0 3px 7px rgba(20,90,220,.45)}
+body[data-theme=aero] .vplay::before{content:"";position:absolute;left:14%;right:14%;top:5%;height:46%;border-radius:50% 50% 46% 46%/62% 62% 38% 38%;
+  background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.12));pointer-events:none;z-index:1}
+body[data-theme=aero] .vplay svg{position:relative;width:15px;height:15px;filter:drop-shadow(0 1px 1px rgba(0,35,130,.55))}
+body[data-theme=aero] .vplay:hover{background:radial-gradient(120% 80% at 50% 115%,#dcfffa 0,#7fe6ff 28%,#45adff 52%,#1f72ec 78%,#0d48bb)!important}
 body[data-theme=aero] .vtime{font:700 11.5px 'Nunito Sans'}
 body[data-theme=aero] .vrate{font:700 11px 'Unbounded'}
 body[data-theme=aero] .vrail{background:rgba(30,70,170,.16);box-shadow:inset 0 1px 1px rgba(0,30,100,.25)}
 body[data-theme=aero] .vbuf{background:rgba(40,110,220,.2)}
 body[data-theme=aero] .vfill{background:linear-gradient(180deg,#9ff0ff,#2fb4ff 50%,#1173e6 51%,#3aa0ff)}
 body[data-theme=aero] .vknob{background:radial-gradient(circle at 40% 30%,#fff,#d8ecff 60%,#9ec4f0);box-shadow:0 1px 3px rgba(0,30,110,.45),inset 0 0 0 1px rgba(40,90,190,.4)}
-body[data-theme=aero] .vbig{background:radial-gradient(circle at 50% 120%,#b6fff2 0,#34c6ff 42%,#1667e8 80%);box-shadow:inset 0 -6px 12px rgba(0,30,110,.4),0 6px 18px rgba(10,60,200,.45),0 0 0 3px rgba(255,255,255,.6)}
-body[data-theme=aero] .vbig::before{content:"";position:absolute;left:14%;right:14%;top:5%;height:44%;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.05))}
+/* Aero play button: a glossy gel orb in a white glass rim, the triangle under the gloss */
+body[data-theme=aero] .vbig{width:88px;height:88px;margin:-44px 0 0 -44px;-webkit-backdrop-filter:none;backdrop-filter:none;
+  background:radial-gradient(120% 80% at 50% 115%,#c8fff6 0,#5fdcff 28%,#2a9cff 52%,#1463e0 76%,#0b3fae 100%);
+  box-shadow:inset 0 -10px 18px rgba(0,25,100,.45),inset 0 3px 6px rgba(255,255,255,.35),inset 0 0 0 1.5px rgba(0,45,150,.55),
+    0 0 0 4px rgba(255,255,255,.92),0 0 0 5.5px rgba(70,120,210,.35),0 12px 26px rgba(10,60,200,.45),0 0 30px rgba(120,220,255,.35)}
+body[data-theme=aero] .vbig::before{content:"";position:absolute;z-index:2;left:13%;right:13%;top:5%;height:47%;border-radius:50% 50% 46% 46%/62% 62% 38% 38%;
+  background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,.55) 45%,rgba(255,255,255,.08))}
+body[data-theme=aero] .vbig::after{content:"";position:absolute;z-index:0;left:22%;right:22%;bottom:7%;height:26%;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(200,255,250,.85),rgba(200,255,250,0))}
+body[data-theme=aero] .vbig svg{position:relative;z-index:1;width:36px;height:36px;margin-left:5px;fill:#fff;filter:drop-shadow(0 2px 2px rgba(0,35,130,.55)) drop-shadow(0 0 6px rgba(160,230,255,.6))}
+body[data-theme=aero] .vscreen:hover .vbig{transform:scale(1.05)}
 body[data-theme=aero] .vmenu{background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(225,240,255,.9));color:#17306f;box-shadow:0 10px 24px rgba(10,40,120,.3);border:1px solid #fff}
 body[data-theme=aero] .vmenu button.on{color:#1478f0}
 
