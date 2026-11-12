@@ -11,10 +11,10 @@ input,select{outline:none}
 a{color:inherit}
 svg{display:block}
 #art{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-/* Opened from an iPhone home screen, fixed layers stop short of the home-bar strip: reach into it */
-@supports (bottom:env(safe-area-inset-bottom)){
-  #art{top:calc(-1 * env(safe-area-inset-top));bottom:calc(-1 * env(safe-area-inset-bottom))}
-}
+/* Opened from an iPhone home screen, iOS sizes fixed layers to stop above the home-bar strip; ledger.js
+   measures that gap and the backdrop reaches down through it, so the art runs to the very bottom of the
+   screen the same way it runs up under the status bar */
+#art{bottom:calc(-1 * var(--art-gap,0px))}
 #art>*{position:absolute}
 /* Installed on a desktop, Ledger draws under the window's title bar (Window Controls Overlay): the theme's
    own background runs right up behind the minimise / close buttons. This strip is the part you drag. */

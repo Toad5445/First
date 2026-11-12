@@ -592,6 +592,20 @@ Sync.initSync({
   onError: () => {}
 });
 
+// Home-screen app on an iPhone: the view stops short of the screen's bottom edge (the home-bar strip).
+// Measure the difference and let the backdrop extend through it.
+function fitArt() {
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  let gap = 0;
+  if (standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    const full = innerWidth > innerHeight ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+    gap = Math.max(0, Math.min(140, full - innerHeight));
+  }
+  document.documentElement.style.setProperty('--art-gap', gap + 'px');
+}
+fitArt();
+addEventListener('resize', fitArt);
+addEventListener('orientationchange', () => setTimeout(fitArt, 300));
 // Safari in a browser tab ignores user-scalable=no, so stop pinch-zoom here too (the layout is built for the screen it's on)
 for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
 render();
