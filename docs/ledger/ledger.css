@@ -660,7 +660,12 @@ body.has-video[data-layout=center] .vdock{width:calc(100% - 24px)}
 .vclose svg{width:11px;height:11px}.vclose path{stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .vscreen{position:relative;aspect-ratio:16/9;overflow:hidden;background:#000}
 .vscale{position:absolute;left:0;top:0;width:calc(100% * var(--vs,1));height:calc(100% * var(--vs,1));transform:scale(calc(1 / var(--vs,1)));transform-origin:0 0}
-.vscreen iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+/* YouTube pins its title bar and pause overlays to the top and bottom edges of its player, while the video
+   sits letterboxed in the middle. The player is made taller than the frame, with the video exactly filling the
+   frame, so anything pinned to those edges falls in the hidden margin above and below. */
+.vscreen iframe{position:absolute;left:0;width:100%;top:calc(-1 * var(--crop,0px));height:calc(100% + 2 * var(--crop,0px));border:0;display:block}
+.vscale{--crop:28%}
+.vscale iframe{top:-28%;height:156%}
 .vframe .vc,.vframe .vpin,.vframe .orbs{display:none}
 
 /* Aero: a glossy glass window with gel buttons */
@@ -752,7 +757,9 @@ body.theater[data-theme=light][data-layout=center] .vframe{transform:rotate(-.5d
 .vbig{position:absolute;left:50%;top:50%;z-index:2;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;display:grid;place-items:center;pointer-events:none;
   opacity:0;transform:scale(.85);transition:opacity .25s,transform .25s;color:#fff;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .vbig svg{width:30px;height:30px;fill:currentColor;margin-left:3px}
+/* the big play button shows when paused, then steps aside after a moment; moving over the video brings it back */
 .vscreen.paused .vbig{opacity:1;transform:none}
+.vscreen.paused.settled:not(.show):not(.fresh) .vbig{opacity:0;transform:scale(.92);transition:opacity .6s ease,transform .6s ease}
 .vctl{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;gap:6px;padding:26px 10px 8px;color:#fff;
   opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .22s ease,transform .22s ease;
   background:linear-gradient(180deg,transparent,rgba(0,0,0,.6))}

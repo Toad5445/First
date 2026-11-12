@@ -312,7 +312,9 @@ function wireControls(scr, iframe) {
         scr.classList.toggle('paused', !playing);
         bPlay.innerHTML = playing ? VI.pause : VI.play;
         bPlay.setAttribute('aria-label', playing ? 'Pause' : 'Play');
-        if (e.data === 2 || e.data === 0) show(); paint();
+        clearTimeout(scr._settle); scr.classList.remove('settled');
+        if (!playing) scr._settle = setTimeout(() => scr.classList.add('settled'), 1100);
+        if ((e.data === 2 || e.data === 0) && scr.matches(':hover')) show(); paint();
       },
       onError: () => { scr.classList.add('failed'); }
     } });
