@@ -80,7 +80,6 @@ const aero = {
   head: c => `<header class="ph">
       <div class="titlebar"><span class="orbs" aria-hidden="true"><i></i><i></i><i></i></span><span class="tb-title">Ledger</span><span class="tb-path">${tabTitle(c, 'today', 'workout', 'settings')}</span></div>
       <div class="ph-row"><h2>${tabTitle(c, 'Today', 'Workout', 'Settings')}</h2><div class="d">${c.dow.toLowerCase()}<br>${c.date} ${MON3(c.month).toLowerCase()} ${c.year}</div></div>
-      ${c.tab === 'tasks' ? `<div class="sticker ${c.total && c.done === c.total ? 'all' : ''}" aria-hidden="true"><svg viewBox="0 0 100 100"><defs><radialGradient id="aebst" cx=".4" cy=".35"><stop offset="0" stop-color="#d9ffb0"/><stop offset=".55" stop-color="#6fdc3c"/><stop offset="1" stop-color="#2fa61f"/></radialGradient></defs><polygon fill="url(#aebst)" stroke="#fff" stroke-width="3" points="50,2 60,22 82,12 78,36 98,44 80,58 92,80 68,78 62,98 50,82 38,98 32,78 8,80 20,58 2,44 22,36 18,12 40,22"/><ellipse cx="40" cy="30" rx="22" ry="10" fill="#fff" opacity=".45"/></svg><b>${c.total && c.done === c.total ? 'ALL<br>DONE!' : 'NEW<br>DAY!'}</b></div>` : ''}
     </header>`,
   brand: c => `<div class="ae-brand">
       <svg class="spark s1" viewBox="0 0 24 24"><path d="M12 0C13 8 16 11 24 12 16 13 13 16 12 24 11 16 8 13 0 12 8 11 11 8 12 0Z"/></svg>
@@ -97,27 +96,8 @@ const aero = {
 };
 
 // ==================================================================== CYBER
-function chain() {
-  let links = '', x = 430, y = -30, ang = 24;
-  for (let i = 0; i < 11; i++) {
-    const dx = Math.sin(ang * Math.PI / 180) * 92, dy = Math.cos(ang * Math.PI / 180) * 92;
-    links += i % 2 === 0
-      ? `<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="50" ry="72" transform="rotate(${-ang} ${x.toFixed(0)} ${y.toFixed(0)})" fill="none" stroke="#fff" stroke-width="20"/>`
-      : `<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="15" ry="74" transform="rotate(${-ang} ${x.toFixed(0)} ${y.toFixed(0)})" fill="none" stroke="#fff" stroke-width="19"/>`;
-    x += dx; y += dy; ang += i % 3 ? -7 : 5;
-  }
-  return `<svg class="cy-chain" viewBox="0 0 760 1060" aria-hidden="true"><defs>
-  <filter id="cychrome" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-   <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="b"/>
-   <feSpecularLighting in="b" surfaceScale="10" specularConstant="1.6" specularExponent="40" lighting-color="#eef0ff" result="s"><fePointLight x="520" y="-120" z="260"/></feSpecularLighting>
-   <feComposite in="s" in2="SourceAlpha" operator="in" result="sp"/>
-   <feDiffuseLighting in="b" surfaceScale="10" diffuseConstant="1" lighting-color="#8a8ea6" result="d"><feDistantLight azimuth="300" elevation="35"/></feDiffuseLighting>
-   <feComposite in="d" in2="SourceAlpha" operator="in" result="dd"/>
-   <feColorMatrix in="dd" values=".42 0 0 0 0  0 .44 0 0 0  0 0 .55 0 0  0 0 0 1 0" result="dk"/>
-   <feComposite in="sp" in2="dk" operator="arithmetic" k2="1" k3="1"/>
-   <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000" flood-opacity=".8"/>
-  </filter></defs><g filter="url(#cychrome)">${links}</g></svg>`;
-}
+// a ray-traced chrome chain (tools/chain_render.py)
+const chain = () => '<img class="cy-chain" src="art/chain.webp" alt="" decoding="async">';
 const cyber = {
   name: 'Cybercore', color: '#030305', check: 'xbox',
   tabNames: ['Tasks', 'Workout', 'Settings'],
