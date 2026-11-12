@@ -1,6 +1,6 @@
 /* Ledger — four looks, three layouts. Shared structure first, then each theme. */
 *,*::before,*::after{box-sizing:border-box;margin:0}
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation}
 body{min-height:100vh;min-height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
@@ -51,10 +51,11 @@ body[data-layout=center] .stage{grid-template-columns:minmax(0,1fr) var(--pw) mi
   .task .del{position:absolute;right:-6px;top:50%;margin-top:-14px}
   .task .meta{transition:opacity .2s}
   .task:hover .meta{opacity:0}
-  body[data-theme=dark] .task .del{right:-40px}
+
   body[data-theme=dark] .task:hover .meta{opacity:1}
   body[data-theme=cyber] .task{grid-template-columns:26px 1fr auto!important}
 }
+@media (hover:hover) and (min-width:861px){ body[data-theme=dark] .task .del{right:-40px} }
 .addrow input:focus-visible,.t-edit:focus-visible,.rest-input:focus-visible,.rest-set:focus-visible{outline:none}
 .frow input:focus,.frow select:focus,.auth input:focus,.rest-set:focus{border-color:var(--accent)}
 .empty{padding:28px 0;color:var(--dim)}
@@ -482,10 +483,6 @@ body[data-theme=dark]{--ink:#ddd3c0;--dim:#857c6c;--gold:#b8955a;--accent:#b8955
 .sigil .gold .node{fill:#070605;stroke-width:1.1}
 .sigil .gold .moon{fill:url(#dkgold);stroke:none;opacity:.9}
 .sigil .nums text{fill:url(#dkgold);stroke:none;font:500 15px 'Cinzel';text-anchor:middle;letter-spacing:.06em}
-.ring-outer{animation:spin 420s linear infinite}
-.ring-mid{animation:spin 300s linear infinite reverse}
-.ring-inner{animation:spin 600s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
 .dk-title{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
 .dk-title .over,.dk-title .sub{font:500 11px 'Cinzel';letter-spacing:.55em;color:#a8915f;margin-right:-.55em}
 .dk-title .word{font:400 min(118px,19cqi)/1 'IM Fell English',serif;margin:6px 0 4px;padding:0 .1em;
@@ -630,7 +627,9 @@ body[data-theme=light] .theme-card .tc-name,body[data-theme=light] .seg-opts but
 
 /* =================================================================== PHONES */
 @media (max-width:860px){
-  body{overflow:auto}
+  body{overflow:auto;overflow-x:hidden}
+  /* iPhones zoom into any text box under 16px when it's tapped */
+  input:not(.rest-time),select{font-size:16px!important}
   .stage,body[data-layout] .stage,body[data-theme] .stage{display:flex;flex-direction:column;height:auto;min-height:100vh;min-height:100dvh;gap:0;
     padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 8px)}
   .side{display:none!important}
@@ -674,17 +673,22 @@ body[data-theme=light] .theme-card .tc-name,body[data-theme=light] .seg-opts but
   body[data-theme=cyber] .count{font-size:34px}
 
   /* dark */
-  body[data-theme=dark] .brand{height:min(78vw,330px);margin:-6px -16px 0}
-  .sigil{width:min(78vw,330px)}
-  body[data-theme=dark] .dk-title .word{font-size:min(72px,18vw)}
+  body[data-theme=dark] .brand{height:min(54vw,230px);margin:-6px -16px 0}
+  .sigil{width:min(54vw,230px)}
+  body[data-theme=dark] .dk-title .word{font-size:min(58px,15vw)}
+  body[data-theme=dark] .dk-title .over,body[data-theme=dark] .dk-title .sub{letter-spacing:.4em}
   body[data-theme=dark] .dk-title .over,body[data-theme=dark] .dk-title .sub{font-size:9px}
-  body[data-theme=dark] .panel{padding:34px 22px 0;margin-top:-30px}
-  body[data-theme=dark] .ph h2{font-size:50px}
-  body[data-theme=dark] .ph .date{font-size:18px}
+  body[data-theme=dark] .panel{padding:24px 18px 0;margin-top:-14px}
+  body[data-theme=dark] .ph .over{font-size:10px}
+  body[data-theme=dark] .ph h2{font-size:40px;margin:6px 0 2px}
+  body[data-theme=dark] .ph .date{font-size:17px}
+  body[data-theme=dark] .fleuron{margin:12px auto 0}
+  body[data-theme=dark] .addrow{padding:12px 0 10px}
+  body[data-theme=dark] .task{padding:10px 0;gap:14px}
   .corner{width:30px;height:30px}
   .corner.tl{left:8px;top:8px}.corner.tr{right:8px;top:8px}.corner.bl,.corner.br{display:none}
   body[data-theme=dark] .task .t{font-size:21px}
-  body[data-theme=dark] .pfoot{background:rgba(8,7,6,.97);padding:14px 0 14px;margin:0 -22px;padding-left:22px;padding-right:22px;gap:12px;border-top:1px solid var(--line)}
+  body[data-theme=dark] .pfoot{background:#080706;padding:12px 0 calc(env(safe-area-inset-bottom) + 12px);margin:0 -18px;padding-left:18px;padding-right:18px;gap:12px;border-top:1px solid var(--line)}
   body[data-theme=dark] .tabs{gap:8px}
   body[data-theme=dark] .tabs button{font-size:10px;letter-spacing:.16em}
 

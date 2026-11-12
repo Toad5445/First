@@ -122,6 +122,10 @@ function cyberArt() {
 }
 
 // ==================================================================== DARK ACADEMIA
+// Rings turn with SVG's own animation, which pivots on the true centre in every browser.
+// (A CSS transform on SVG shapes pivots on a different point in Safari and swings the rings off-centre.)
+const spin = (sec, dir = 1) => matchMedia('(prefers-reduced-motion: reduce)').matches ? ''
+  : `<animateTransform attributeName="transform" type="rotate" from="0 0 0" to="${dir * 360} 0 0" dur="${sec}s" repeatCount="indefinite"/>`;
 function sigil() {
   const P = Math.PI, pt = (r, a) => [(Math.sin(a) * r).toFixed(2), (-Math.cos(a) * r).toFixed(2)];
   let ticks = '';
@@ -139,9 +143,9 @@ function sigil() {
     <mask id="dkm"><rect x="-300" y="-300" width="600" height="600" fill="url(#dkfade)"/></mask>
     <filter id="dkglow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
     <g mask="url(#dkm)" filter="url(#dkglow)" class="gold">
-      <g class="ring-outer"><circle r="290"/><circle r="282"/><path d="${ticks}"/><circle r="258"/><g class="nums">${nums}</g><circle r="222"/>${dots}</g>
-      <g class="ring-mid"><polygon points="${hept}"/>${nodes}<circle r="196" class="thin"/></g>
-      <g class="ring-inner"><circle r="118"/><polygon points="${tri}" class="thin"/><polygon points="${sq}" class="thin"/><circle r="72"/>
+      <g class="ring-outer">${spin(420)}<circle r="290"/><circle r="282"/><path d="${ticks}"/><circle r="258"/><g class="nums">${nums}</g><circle r="222"/>${dots}</g>
+      <g class="ring-mid">${spin(300, -1)}<polygon points="${hept}"/>${nodes}<circle r="196" class="thin"/></g>
+      <g class="ring-inner">${spin(600)}<circle r="118"/><polygon points="${tri}" class="thin"/><polygon points="${sq}" class="thin"/><circle r="72"/>
         <path d="${rays}"/><circle r="36"/><circle r="7" class="fill"/>
         <path class="moon" d="M-6 -150 a 14 14 0 1 0 0 28 a 11 11 0 1 1 0 -28Z"/></g>
     </g></svg>`;

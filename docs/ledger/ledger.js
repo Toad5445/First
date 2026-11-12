@@ -590,6 +590,8 @@ Sync.initSync({
   onError: () => {}
 });
 
+// Safari in a browser tab ignores user-scalable=no, so stop pinch-zoom here too (the layout is built for the screen it's on)
+for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
 render();
 if (matchMedia('(min-width: 861px)').matches && view.tab === 'tasks') { const a = $('addin'); if (a) a.focus({ preventScroll: true }); }
 
