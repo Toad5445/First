@@ -5,11 +5,17 @@ body{min-height:100vh;min-height:100dvh;overflow:hidden;-webkit-font-smoothing:a
 /* Behind the art (and for the instant before it's drawn) the page shows a copy of the theme's own backdrop,
    so opening the app looks like the theme fading in rather than a flat colour */
 html{min-height:100%;background:#ede4d3}
-html[data-theme=aero]{background:linear-gradient(180deg,#1f63f5 0%,#4f93ff 24%,#9fc8ff 50%,#d9eeff 72%,#effaff 88%,#9fd77a 100%)}
+html[data-theme=aero]{background:linear-gradient(180deg,#1f63f5 0%,#4f93ff 24%,#9fc8ff 50%,#d9eeff 72%,#effaff 88%,#9fd77a 100%) #8fcf6a}
 html[data-theme=cyber]{background:#030305}
 html[data-theme=dark]{background:radial-gradient(70% 60% at 50% 45%,#100d0b 0%,#070605 60%,#020202 100%) #040303}
-html[data-theme=light]{background:radial-gradient(90% 70% at 70% 40%,#f6f0e4,#f0e7d7 70%,#e9dfcc) #ede4d3}
+html[data-theme=light]{background:radial-gradient(90% 70% at 70% 40%,#f6f0e4,#f0e7d7 70%,#e9dfcc) #e9dfcc}
 body{background:transparent!important}
+/* iPhone home-screen app with the page drawn under the status bar: iOS makes the page the screen's height
+   minus the status bar (47pt) yet starts it at the very top, so it ends 47pt short of the bottom and iOS
+   paints that gap itself. Make the page, and the art, taller by exactly that much. */
+@media (display-mode:standalone){
+  body{min-height:calc(100vh + env(safe-area-inset-top))}
+}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
 input,select{outline:none}
@@ -19,7 +25,7 @@ svg{display:block}
 /* An iPhone home-screen app can open with fixed layers sized to a stale, shorter screen (they only correct
    after the layout changes), leaving a strip above the home bar. ledger.js sets the art's height to the real
    full-screen height instead of trusting that. */
-#art{bottom:auto;height:var(--art-h,100%)}
+#art{bottom:auto;height:max(var(--art-h,100%),calc(100vh + env(safe-area-inset-top)))}
 #art>*{position:absolute}
 /* Installed on a desktop, Ledger draws under the window's title bar (Window Controls Overlay): the theme's
    own background runs right up behind the minimise / close buttons. This strip is the part you drag. */
@@ -727,4 +733,8 @@ body[data-theme=light] .theme-card .tc-name,body[data-theme=light] .seg-opts but
   body[data-theme=light] .tabs button{font-size:9.5px;letter-spacing:.14em}
   body[data-theme=light] .count{font-size:19px}
   body[data-theme=light] .count small{font-size:12px}
+}
+/* (see the note by #art) phones opened from the home screen: the layout fills the full screen height too */
+@media (display-mode:standalone) and (max-width:860px){
+  body[data-theme] .stage{min-height:calc(100vh + env(safe-area-inset-top))}
 }
