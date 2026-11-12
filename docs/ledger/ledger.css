@@ -677,7 +677,7 @@ body[data-theme=light] .theme-card .tc-name,body[data-theme=light] .seg-opts but
   body[data-theme=aero] .tabs button{padding:8px 9px;font-size:9.5px;letter-spacing:.03em}
   body[data-theme=aero] .count{font-size:11px;white-space:nowrap}
   body[data-theme=aero] .pfoot{gap:8px}
-      .ae-hills{height:14vh}
+      .ae-hills{height:25vh}
 
   /* cyber */
   body[data-theme=cyber] .brand{padding:0}
