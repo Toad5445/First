@@ -76,7 +76,7 @@ const aero = {
   tabNames: ['Tasks', 'Workout', 'History', '<svg viewBox="0 0 24 24" class="gear" aria-label="Settings"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.7.1-1.3-.1-1.3 2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-2.2-1.3L15.4 2.6h-4l-.4 2.7a8 8 0 0 0-2.2 1.3l-2.5-1-2 3.5L6.4 10.7l-.1 1.3.1 1.3-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 2.2 1.3l.4 2.7h4l.4-2.7a8 8 0 0 0 2.2-1.3l2.5 1 2-3.5Z"/></svg>'],
   placeholder: 'Add a task…', addLabel: 'Add', empty: 'Nothing on the list yet. Type above to add your first task.',
   num: i => String(i).padStart(2, '0'),
-  count: c => `<b>${c.done}</b> / ${c.total} done`,
+  count: c => c.total ? `<b>${c.done}</b> / ${c.total} done` : 'nothing yet',
   head: c => `<header class="ph">
       <div class="titlebar"><span class="orbs" aria-hidden="true"><i></i><i></i><i></i></span><span class="tb-title">Ledger</span><span class="tb-path">${tabTitle(c, 'today', 'workout', 'settings', 'history')}</span></div>
       <div class="ph-row"><h2>${tabTitle(c, 'Today', 'Workout', 'Settings', 'History')}</h2><div class="d">${c.dow.toLowerCase()}<br>${c.date} ${MON3(c.month).toLowerCase()} ${c.year}</div></div>
@@ -182,14 +182,36 @@ const dark = {
 };
 
 // ==================================================================== LIGHT ACADEMIA
-function tearPath(seed, W, H, x0, x1) {
+// A torn edge, as two outlines: where the painted layer ends (inner) and where the paper fibres end (outer).
+// The white rim between them changes width as it goes, wide where the paper split thick and thin where it
+// broke clean, the way real torn paper looks; each outline wanders at a slow and a fast scale.
+function tearEdges(seed, W, H, x0, x1) {
   const r = rng(seed);
-  const edge = x => { const pts = []; let y = 0, d = 0; while (y < H) { d = d * .85 + (r() - .5) * 4.4; pts.push([x + d * 2 + (r() - .5) * 3.2, y]); y += 3 + r() * 5; } pts.push([x + (r() - .5) * 18, H]); return pts; };
-  const L = edge(x0), R = edge(x1).reverse();
-  return 'M' + L.map(p => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L') + ' L' + R.map(p => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L') + ' Z';
+  const side = (x, dir) => {
+    const inner = [], outer = [];
+    let y = 0, slow = 0, w = 4, bite = 0, fast = 0;
+    while (y <= H) {
+      slow = slow * .93 + (r() - .5) * 2.6;                     // long, lazy drift of the tear
+      fast = fast * .55 + (r() - .5) * 1.1;                          // fine wobble, smoothed so it never saws
+      w = Math.max(.6, Math.min(10, w * .88 + r() * 1.3 + (r() < .05 ? r() * 6 : 0)));  // rim thickness
+      bite = bite * .82 + (r() < .025 ? (r() - .3) * 5 : 0);     // the odd chunk where more paper came away
+      const xi = x + (slow * 2.2 + fast + bite) * dir * -1;
+      inner.push([xi, y]); outer.push([xi + dir * w * (1 + r() * .35), y]);
+      y += 2 + r() * 3.2;
+    }
+    return { inner, outer };
+  };
+  const L = side(x0, -1), R = side(x1, 1);
+  const path = (l, rr) => 'M' + l.map(p => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L') + ' L' + rr.slice().reverse().map(p => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L') + ' Z';
+  return { inner: path(L.inner, R.inner), outer: path(L.outer, R.outer) };
+}
+// small birds far off: filled shapes, heavy at the body and tapering to fine wing tips
+function bird(x, y, s, rot, flap) {
+  const up = -4.2 * flap;
+  return `<path transform="translate(${x} ${y}) rotate(${rot}) scale(${s})" d="M0 0.6 C-2.2 ${up * .55 - .2} -5.6 ${up - .4} -10.5 ${up * .55 + .3} C-5.8 ${up * .9 + .9} -2.4 ${up * .45 + 1.4} 0 1.6 C2.4 ${up * .45 + 1.4} 5.8 ${up * .9 + .9} 10.5 ${up * .55 + .3} C5.6 ${up - .4} 2.2 ${up * .55 - .2} 0 0.6Z"/>`;
 }
 function fresco(id, seed, warm) {
-  const W = 540, H = 828, tear = tearPath(seed, W, H, 30, 510);
+  const W = 540, H = 828, edges = tearEdges(seed, W, H, 30, 510), tear = edges.inner;
   const sky = warm ? ['#8b97b4', '#c5b3b0', '#eac69a', '#d99a62'] : ['#7f9fc0', '#a9bccb', '#e6cfa8', '#d9a873'];
   return `<svg class="fresco-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><defs>
     <linearGradient id="${id}sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset=".35" stop-color="${sky[1]}"/><stop offset=".62" stop-color="${sky[2]}"/><stop offset="1" stop-color="${sky[3]}"/></linearGradient>
@@ -203,18 +225,18 @@ function fresco(id, seed, warm) {
     <linearGradient id="${id}hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8d98a6" stop-opacity=".55"/><stop offset="1" stop-color="#b9a07c" stop-opacity=".7"/></linearGradient>
     <linearGradient id="${id}hill2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f7568" stop-opacity=".55"/><stop offset="1" stop-color="#8e7350" stop-opacity=".85"/></linearGradient>
     <radialGradient id="${id}vig" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="#3a2410" stop-opacity="0"/><stop offset="1" stop-color="#3a2410" stop-opacity=".45"/></radialGradient>
-    <filter id="${id}fiber"><feTurbulence type="fractalNoise" baseFrequency=".25" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter>
+    <filter id="${id}fiber" x="-5%" y="-2%" width="110%" height="104%"><feTurbulence type="fractalNoise" baseFrequency=".55 .9" numOctaves="3" seed="${seed + 2}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" result="d"/><feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="${seed}" result="g"/><feColorMatrix in="g" values="0 0 0 0 1  0 0 0 0 .985  0 0 0 0 .95  0 0 0 -.45 1.15" result="grain"/><feComposite in="grain" in2="d" operator="in"/></filter><filter id="${id}soft"><feGaussianBlur stdDeviation="1.6"/></filter><filter id="${id}lift" x="-5%" y="-2%" width="110%" height="104%"><feDropShadow dx="0" dy="1.2" stdDeviation="1.4" flood-color="#5a3f1e" flood-opacity=".28"/></filter>
     <clipPath id="${id}tear"><path d="${tear}"/></clipPath></defs>
+    <g filter="url(#${id}lift)"><path d="${edges.outer}" fill="#fffdf7" filter="url(#${id}fiber)"/></g>
     <g clip-path="url(#${id}tear)">
       <rect width="${W}" height="${H}" fill="url(#${id}sky)"/><rect width="${W}" height="${H}" fill="url(#${id}sun)"/>
       <rect width="${W}" height="${H}" filter="url(#${id}cs)" opacity=".55"/><rect width="${W}" height="${H}" filter="url(#${id}cl)"/>
       <path d="M0 700 C 70 676 120 690 180 668 S 300 640 360 664 S 470 690 540 660 V${H} H0Z" fill="url(#${id}hill)" filter="url(#${id}haze)"/>
       <path d="M0 748 C 90 724 170 742 250 722 S 400 700 460 728 S 520 744 540 736 V${H} H0Z" fill="url(#${id}hill2)" filter="url(#${id}haze)"/>
-      <g class="birds" fill="none" stroke="#5a4a3a" stroke-width="1.3" stroke-linecap="round" opacity=".55"><path d="M380 236q6 -5 11 0q5 -5 11 0"/><path d="M412 252q4 -3.5 8 0q4 -3.5 8 0"/><path d="M362 262q3 -2.6 6 0q3 -2.6 6 0"/></g>
+      <g class="birds" fill="#4e4032" opacity=".6">${bird(386, 236, 1.05, -4, 1)}${bird(418, 251, .75, 6, .55)}${bird(366, 262, .55, -10, .85)}</g>
       <rect width="${W}" height="${H}" fill="url(#${id}sun)" opacity=".5"/><rect width="${W}" height="${H}" fill="url(#${id}vig)"/>
       <rect width="${W}" height="${H}" fill="#000" filter="url(#${id}paint)"/></g>
-    <path d="${tear}" fill="none" stroke="#f7f1e6" stroke-width="7" opacity=".95" filter="url(#${id}fiber)"/>
-    <path d="${tear}" fill="none" stroke="#c9b693" stroke-width="1" opacity=".7"/></svg>`;
+    <path d="${tear}" fill="none" stroke="#6b4e2c" stroke-width="2.5" opacity=".22" filter="url(#${id}soft)" clip-path="url(#${id}tear)"/></svg>`;
 }
 const LEDE = '<div class="lede"><p>Each morning the page is clean. Set down what the day asks of you, plainly and in order, and leave nothing to memory.</p><p>As the hours pass, mark each task as it is done. What remains at nightfall is simply let go, and tomorrow begins anew.</p></div>';
 const light = {
@@ -222,7 +244,7 @@ const light = {
   tabNames: ['Tasks', 'Workout', 'Records', 'Settings'],
   placeholder: 'Add a task…', addLabel: 'Add', empty: 'A clean page. Begin whenever you are ready.',
   num: i => roman(i),
-  count: c => `${word(c.done)} <small>of ${word(c.total)}</small>`,
+  count: c => c.total ? `${word(c.done)} <small>of ${word(c.total)}</small>` : '<small>a clean page</small>',
   head: c => `<header class="ph"><div class="top"><span>FOLIO ${roman(c.now.getMonth() + 1)} · ${roman(c.year)}</span><span>${c.month.toUpperCase()}</span></div>
       <div class="headrow">${STAR}<h2>${tabTitle(c, `${c.dow}<i>the ${c.ord}</i>`, `${c.dow}<i>exercises</i>`, 'Settings<i>& preferences</i>', 'Records<i>of days past</i>')}</h2></div>
       ${c.tab === 'tasks' ? LEDE : ''}<div class="rule" aria-hidden="true">${STAR}</div></header>`,
