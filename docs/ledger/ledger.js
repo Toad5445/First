@@ -165,21 +165,31 @@ function videoSrc(v, autoplay) {
 }
 // builds (or removes) the player; called only when the video itself changes, so theme switches and
 // re-renders never restart playback
+// center layout only: the enlarge button folds the art column away and gives the video the room
+function theater() {
+  const on = !!(video.on && video.big && S.settings.layout === 'center' && ytParse(video.url));
+  document.body.classList.toggle('theater', on);
+  const b = document.querySelector('#vdock .vexpand');
+  if (b) { b.setAttribute('aria-pressed', on); b.setAttribute('aria-label', on ? 'Make video smaller' : 'Enlarge video'); b.title = on ? 'Smaller' : 'Enlarge'; }
+}
 function placeVideo(autoplay) {
   const dock = $('vdock'), v = video.on && ytParse(video.url);
   document.body.classList.toggle('has-video', !!v);
-  if (!v) { dock.hidden = true; dock.innerHTML = ''; return; }
+  if (!v) { dock.hidden = true; dock.innerHTML = ''; theater(); return; }
   const src = videoSrc(v, autoplay);
   const frame = dock.querySelector('iframe');
   if (frame && frame.dataset.key === video.url) { dock.hidden = false; return; }
   dock.innerHTML = `<div class="vframe">
       <i class="vc tl"></i><i class="vc tr"></i><i class="vc bl"></i><i class="vc br"></i><i class="vpin" aria-hidden="true"></i>
       <div class="vbar"><span class="orbs" aria-hidden="true"><i></i><i></i><i></i></span><span class="vlabel"></span>
+        <button class="vexpand" aria-label="Enlarge video" title="Enlarge"><svg viewBox="0 0 16 16" class="i-grow"><path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9"/></svg><svg viewBox="0 0 16 16" class="i-shrink"><path d="M13 7H9V3M9 7l4.5-4.5M3 9h4v4M7 9l-4.5 4.5"/></svg></button>
         <button class="vclose" aria-label="Hide video">${X_ICON}</button></div>
       <div class="vscreen"><iframe src="${esc(src)}" data-key="${esc(video.url)}" title="YouTube video" loading="lazy"
         allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>`;
   dock.hidden = false;
   dock.querySelector('.vclose').onclick = () => { video.on = false; videoSave(); placeVideo(); if (view.tab === 'settings') renderPanel(); };
+  dock.querySelector('.vexpand').onclick = () => { video.big = !video.big; videoSave(); theater(); };
+  theater();
   dock.querySelector('.vlabel').textContent = T().vlabel || '';
 }
 
@@ -196,6 +206,7 @@ function render() {
   // what shows behind the art, e.g. in the iPhone home-bar strip, is the colour of the theme's bottom edge
   document.documentElement.dataset.theme = st.theme;
   const vl = document.querySelector('#vdock .vlabel'); if (vl) vl.textContent = t.vlabel || '';
+  theater();
   tickClocks();
 }
 
