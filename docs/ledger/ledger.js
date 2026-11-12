@@ -162,6 +162,7 @@ function videoSrc(v, autoplay) {
   const q = new URLSearchParams({ rel: '0', modestbranding: '1', playsinline: '1', controls: '0', disablekb: '1', fs: '0',
     iv_load_policy: '3', enablejsapi: '1', origin: location.origin });
   if (v.start) q.set('start', v.start);
+  if (v.index) q.set('index', v.index);
   if (autoplay) q.set('autoplay', '1');
   if (v.list) q.set('list', v.list);
   return `https://www.youtube-nocookie.com/embed/${v.id || 'videoseries'}?${q}`;
@@ -330,9 +331,22 @@ function wireControls(scr, iframe) {
   prog.addEventListener('pointerleave', () => { if (!dragging) prog.classList.remove('tipping'); });
   prog.addEventListener('pointermove', e => { if (!dragging) return; const f = seekAt(e.clientX); fill.style.width = knob.style.left = f * 100 + '%'; time.textContent = `${tfmt(f * yt.getDuration())} / ${tfmt(yt.getDuration())}`; });
   prog.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; prog.classList.remove('drag'); if (!prog.matches(':hover')) prog.classList.remove('tipping'); yt.seekTo(seekAt(e.clientX) * yt.getDuration(), true); show(); });
+  // remember the spot: every couple of seconds while playing, on pause, and when Ledger is closed
+  let lastSave = 0;
+  const savePos = (force) => {
+    if (!yt || !yt.getCurrentTime || !iframe.isConnected) return;
+    const now = Date.now(); if (!force && now - lastSave < 2000) return; lastSave = now;
+    const t = yt.getCurrentTime(); if (!(t > 1)) return;
+    video.pos = t; video.posFor = video.url;
+    const pl = yt.getPlaylist && yt.getPlaylist(); video.idx = pl && pl.length ? yt.getPlaylistIndex() : null;
+    videoSave();
+  };
+  addEventListener('pagehide', () => savePos(true));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) savePos(true); });
   function paint() {
     if (!yt || !yt.getDuration) return;
     const d = yt.getDuration() || 0, t = yt.getCurrentTime() || 0;
+    if (yt.getPlayerState && yt.getPlayerState() === 1) savePos(false);
     if (!dragging && d) { fill.style.width = knob.style.left = (t / d * 100) + '%'; time.textContent = `${tfmt(t)} / ${tfmt(d)}`; }
     buf.style.width = ((yt.getVideoLoadedFraction && yt.getVideoLoadedFraction()) || 0) * 100 + '%';
     const muted = yt.isMuted && yt.isMuted(), vol = muted ? 0 : (yt.getVolume ? yt.getVolume() : 100);
@@ -350,6 +364,8 @@ function wireControls(scr, iframe) {
     yt = new YT.Player(iframe, { events: {
       onReady: () => { scr.classList.add('ready'); if (video.vol) yt.setVolume(video.vol); paint(); },
       onStateChange: e => {
+        if (e.data === 2) savePos(true);
+        if (e.data === 0) { video.pos = 0; video.idx = null; videoSave(); }
         playing = e.data === 1 || e.data === 3;
         if (e.data === 1) scr.classList.remove('fresh');   // first play: the poster gives way to the video
         scr.classList.toggle('paused', !playing);
@@ -379,6 +395,8 @@ function placeVideo(autoplay) {
   const dock = $('vdock'), v = video.on && ytParse(video.url);
   document.body.classList.toggle('has-video', !!v);
   if (!v) { dock.hidden = true; dock.innerHTML = ''; yt = null; clearInterval(ytTimer); theater(); return; }
+  // pick up where it was left off (same link only; a finished video starts over)
+  if (video.pos && video.posFor === video.url) { v.start = Math.floor(video.pos); if (video.idx != null) v.index = video.idx; }
   const src = videoSrc(v, autoplay);
   const frame = dock.querySelector('iframe');
   if (frame && frame.dataset.key === video.url) { dock.hidden = false; theater(); return; }
@@ -769,7 +787,7 @@ function bindSettings(p) {
     e.preventDefault();
     const url = $('vlink').value.trim();
     if (!ytParse(url)) { $('verr').textContent = 'That doesn’t look like a YouTube link.'; return; }
-    video = { url, on: true }; videoSave(); placeVideo(true); renderPanel();
+    video = Object.assign({}, video, { url, on: true }); videoSave(); placeVideo(true); renderPanel();
   };
   const vt = $('vtoggle'); if (vt) vt.onclick = () => { video.on = !video.on; videoSave(); placeVideo(video.on); renderPanel(); };
   const vf = $('vforget'); if (vf) vf.onclick = () => { video = {}; videoSave(); placeVideo(); renderPanel(); };
