@@ -230,7 +230,12 @@ function wireControls(scr, iframe) {
   };
   const hide = () => { clearTimeout(hideT); if (!dragging) { scr.classList.remove('show'); menu.hidden = true; } };
   scr.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') show(); });
-  scr.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hide(); });
+  // the settings menu lives just outside the video (so a small player doesn't clip it), inside it in full screen
+  const home = scr.closest('.vframe'); home.appendChild(menu);
+  const inMenu = el => el && (el === menu || menu.contains(el));
+  scr.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !inMenu(e.relatedTarget)) hide(); });
+  menu.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !scr.contains(e.relatedTarget)) hide(); });
+  menu.addEventListener('pointermove', () => show(4000));
   const toggle = () => { if (!yt || !yt.getPlayerState) return; playing ? yt.pauseVideo() : yt.playVideo(); };
   hit.addEventListener('click', e => {
     if (e.pointerType === 'touch' || (e.pointerType === undefined && matchMedia('(hover: none)').matches)) {
@@ -243,6 +248,30 @@ function wireControls(scr, iframe) {
   bMute.onclick = () => { if (!yt) return; yt.isMuted() ? yt.unMute() : yt.mute(); setTimeout(paint, 60); show(); };
   bRate.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; show(4000); };
   menu.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { if (yt) yt.setPlaybackRate(+b.dataset.rate); menu.hidden = true; setTimeout(paint, 80); show(); });
+  // Quality: YouTube ignores quality requests from the page, but it picks quality from how big its player is.
+  // So the player is drawn larger than the frame (and scaled down to fit) by just enough for the chosen quality.
+  const QH = { highres: 4320, hd2160: 2160, hd1440: 1440, hd1080: 1080, hd720: 720, large: 480, medium: 360, small: 240, tiny: 144 };
+  const qName = h => h >= 2160 ? '4K' : h + 'p';
+  const qbox = menu.querySelector('.vqs'), qnow = menu.querySelector('.vqnow');
+  const applyQ = () => {
+    const want = video.q && video.q !== 'auto' ? +video.q : 0;
+    const h = scr.clientHeight * (devicePixelRatio || 1);
+    const k = want && h ? Math.min(8, Math.max(1, want / h)) : 1;
+    scr.style.setProperty('--vs', k.toFixed(3));
+    qbox.querySelectorAll('[data-q]').forEach(b => b.classList.toggle('on', b.dataset.q === String(video.q || 'auto')));
+  };
+  const listQ = () => {
+    const lv = (yt && yt.getAvailableQualityLevels ? yt.getAvailableQualityLevels() : []).map(l => QH[l]).filter(h => h >= 720);
+    const hs = [...new Set(lv)].sort((a, b) => b - a);
+    if (!hs.length || qbox.dataset.n === hs.join()) return;
+    qbox.dataset.n = hs.join();
+    qbox.innerHTML = '<button data-q="auto">Auto</button>' + hs.map(h => `<button data-q="${h}">${qName(h)}</button>`).join('');
+    qbox.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { video.q = b.dataset.q; videoSave(); applyQ(); menu.hidden = true; show(); });
+    applyQ();
+  };
+  qbox.querySelector('[data-q]').onclick = () => { video.q = 'auto'; videoSave(); applyQ(); };
+  new ResizeObserver(applyQ).observe(scr);
+  applyQ();
   const canFull = document.fullscreenEnabled || document.webkitFullscreenEnabled;
   if (!canFull) bFull.hidden = true;
   bFull.onclick = () => {
@@ -250,7 +279,10 @@ function wireControls(scr, iframe) {
     if (fs) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
     else (scr.requestFullscreen || scr.webkitRequestFullscreen).call(scr);
   };
-  document.addEventListener('fullscreenchange', () => { bFull.innerHTML = document.fullscreenElement === scr ? VI.exit : VI.full; });
+  document.addEventListener('fullscreenchange', () => {
+    const fs = document.fullscreenElement === scr;
+    bFull.innerHTML = fs ? VI.exit : VI.full; (fs ? scr : home).appendChild(menu);
+  });
   // scrubbing
   const seekAt = x => { const r = prog.getBoundingClientRect(), f = Math.min(1, Math.max(0, (x - r.left) / r.width)); return f; };
   prog.addEventListener('pointerdown', e => {
@@ -265,7 +297,9 @@ function wireControls(scr, iframe) {
     if (!dragging && d) { fill.style.width = knob.style.left = (t / d * 100) + '%'; time.textContent = `${tfmt(t)} / ${tfmt(d)}`; }
     buf.style.width = ((yt.getVideoLoadedFraction && yt.getVideoLoadedFraction()) || 0) * 100 + '%';
     bMute.innerHTML = yt.isMuted && yt.isMuted() ? VI.muted : VI.vol;
-    const r = yt.getPlaybackRate ? yt.getPlaybackRate() : 1; bRate.textContent = `${r}×`;
+    const r = yt.getPlaybackRate ? yt.getPlaybackRate() : 1;
+    const cq = QH[yt.getPlaybackQuality && yt.getPlaybackQuality()]; qnow.textContent = cq ? `· now ${qName(cq)}` : '';
+    listQ();
     menu.querySelectorAll('[data-rate]').forEach(b => b.classList.toggle('on', +b.dataset.rate === r));
   }
   loadYtApi().then(YT => {
@@ -304,8 +338,8 @@ function placeVideo(autoplay) {
         <span class="vtools"><button class="vswap" aria-label="Move video to the left" title="Move left"><svg viewBox="0 0 16 16"><path d="M5.5 3 2.5 6l3 3M2.5 6h11M10.5 7l3 3-3 3M13.5 10h-11"/></svg></button>
         <button class="vexpand" aria-label="Enlarge video" title="Enlarge"><svg viewBox="0 0 16 16" class="i-grow"><path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9"/></svg><svg viewBox="0 0 16 16" class="i-shrink"><path d="M13 7H9V3M9 7l4.5-4.5M3 9h4v4M7 9l-4.5 4.5"/></svg></button>
         <button class="vclose" aria-label="Hide video">${X_ICON}</button></span></div>
-      <div class="vscreen paused fresh"><iframe src="${esc(src)}" data-key="${esc(video.url)}" title="YouTube video"
-        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      <div class="vscreen paused fresh"><div class="vscale"><iframe src="${esc(src)}" data-key="${esc(video.url)}" title="YouTube video"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
         ${v.id ? `<img class="vposter" alt="" src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'">` : ''}
         <div class="vhit" aria-hidden="true"></div>
         <span class="vbig" aria-hidden="true">${VI.play}</span>
@@ -313,9 +347,10 @@ function placeVideo(autoplay) {
           <span class="vtime">0:00 / 0:00</span>
           <div class="vprog" role="slider" aria-label="Seek"><i class="vrail"></i><i class="vbuf"></i><i class="vfill"></i><i class="vknob"></i></div>
           <button class="vmute" aria-label="Mute">${VI.vol}</button>
-          <button class="vrate" aria-label="Playback speed">1×</button>
+          <button class="vrate" aria-label="Settings: quality and speed"><svg viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.7.1-1.3-.1-1.3 2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-2.2-1.3L15.4 2.6h-4l-.4 2.7a8 8 0 0 0-2.2 1.3l-2.5-1-2 3.5L6.4 10.7l-.1 1.3.1 1.3-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 2.2 1.3l.4 2.7h4l.4-2.7a8 8 0 0 0 2.2-1.3l2.5 1 2-3.5Z"/></svg></button>
           <button class="vfull" aria-label="Full screen">${VI.full}</button>
-          <div class="vmenu" hidden>${RATES.map(r => `<button data-rate="${r}">${r === 1 ? 'Normal' : r + '×'}</button>`).join('')}</div></div>
+          <div class="vmenu" hidden><div class="vmh">Quality <span class="vqnow"></span></div><div class="vqs"><button data-q="auto">Auto</button></div>
+            <div class="vmh">Speed</div><div class="vrates">${RATES.map(r => `<button data-rate="${r}">${r === 1 ? 'Normal' : r + '×'}</button>`).join('')}</div></div></div>
       </div></div>`;
   dock.hidden = false;
   dock.querySelector('.vclose').onclick = () => { video.on = false; videoSave(); placeVideo(); if (view.tab === 'settings') renderPanel(); };
