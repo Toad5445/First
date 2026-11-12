@@ -259,6 +259,10 @@ function wireControls(scr, iframe) {
     // whole-number factors only: odd ones (6.28x) can leave a faint seam on some graphics cards
     const k = want && h ? Math.min(8, Math.max(1, Math.ceil(want / h - .05))) : 1;
     scr.style.setProperty('--vs', k.toFixed(3));
+    // shrink with CSS zoom, not a scale transform: a scaled-down video layer can show a seam across its
+    // middle on real graphics cards whenever something is drawn over it
+    const vsc = scr.querySelector('.vscale');
+    if (vsc) { vsc.style.width = scr.clientWidth * k + 'px'; vsc.style.height = scr.clientHeight * k + 'px'; vsc.style.zoom = k > 1 ? 1 / k : ''; }
     qbox.querySelectorAll('[data-q]').forEach(b => b.classList.toggle('on', b.dataset.q === String(video.q || 'auto')));
   };
   const listQ = () => {

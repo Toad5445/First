@@ -659,7 +659,7 @@ body.has-video[data-layout=center] .vdock{width:calc(100% - 24px)}
 .vclose{flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;color:var(--dim)}
 .vclose svg{width:11px;height:11px}.vclose path{stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .vscreen{position:relative;aspect-ratio:16/9;overflow:hidden;background:#000}
-.vscale{position:absolute;left:0;top:0;width:calc(100% * var(--vs,1));height:calc(100% * var(--vs,1));transform:scale(calc(1 / var(--vs,1)));transform-origin:0 0}
+.vscale{position:absolute;left:0;top:0;width:100%;height:100%}
 /* YouTube pins its title bar and pause overlays to the top and bottom edges of its player, while the video
    sits letterboxed in the middle. The player is made taller than the frame, with the video exactly filling the
    frame, so anything pinned to those edges falls in the hidden margin above and below. */
