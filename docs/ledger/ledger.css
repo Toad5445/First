@@ -627,7 +627,11 @@ body[data-theme=light] .theme-card .tc-name,body[data-theme=light] .seg-opts but
 
 /* =================================================================== PHONES */
 @media (max-width:860px){
-  body{overflow:auto;overflow-x:hidden}
+  /* Safari counts a glow's spill past the screen edge as scrollable width (the Cybercore and Dark Academia
+     wordmarks glow), so clip sideways overflow at every level and never pan sideways */
+  html{overflow-x:hidden;touch-action:pan-y;overscroll-behavior-x:none}
+  body{overflow:visible;overflow-x:clip;max-width:100%}
+  .stage,.brand,.panel{overflow-x:clip}
   /* iPhones zoom into any text box under 16px when it's tapped */
   input:not(.rest-time),select{font-size:16px!important}
   .stage,body[data-layout] .stage,body[data-theme] .stage{display:flex;flex-direction:column;height:auto;min-height:100vh;min-height:100dvh;gap:0;
