@@ -754,7 +754,7 @@ body.theater[data-theme=light][data-layout=center] .vframe{transform:rotate(-.5d
 .vposter{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none;transition:opacity .35s}
 .vscreen.fresh .vposter{opacity:1}
 .vbig{position:absolute;left:50%;top:50%;z-index:2;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;display:grid;place-items:center;pointer-events:none;
-  opacity:0;transform:scale(.85);transition:opacity .25s,transform .25s;color:#fff;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  opacity:0;transform:scale(.85);transition:opacity .25s,transform .25s;color:#fff;background:rgba(0,0,0,.55);}
 .vbig svg{width:30px;height:30px;fill:currentColor}
 /* the big play button only invites the first play; after that, pausing leaves the picture clear
    (play/pause lives in the control bar) */
@@ -764,7 +764,7 @@ body.theater[data-theme=light][data-layout=center] .vframe{transform:rotate(-.5d
    scaling, since the circle does too. */
 .vfrost{position:absolute;left:50%;top:50%;z-index:2;width:calc(64px / var(--vs,1));height:calc(64px / var(--vs,1));transform:translate(-50%,-50%) scale(.6);
   border-radius:50%;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;
-  -webkit-backdrop-filter:blur(34px) saturate(1.1) contrast(.8);backdrop-filter:blur(34px) saturate(1.1) contrast(.8);background:rgba(255,255,255,.06)}
+  background:rgba(255,255,255,.06)}
 .vscreen.cov:not(.fresh) .vfrost{opacity:1;transform:translate(-50%,-50%);transition:opacity .2s,transform .2s}
 .vfrost{transition:opacity .7s ease,transform .7s ease}
 /* Aero: the cover is one of a little cluster of soap bubbles that bob and drift up around it */
@@ -784,10 +784,10 @@ body[data-theme=aero] .vbubs i:nth-child(7){--x:calc(-30px / var(--vs,1));--y:ca
 @keyframes vbub{0%{transform:translate(0,8px) scale(.85);opacity:0}18%{opacity:1}50%{transform:translate(3px,-4px) scale(1)}82%{opacity:1}100%{transform:translate(-2px,-16px) scale(1.04);opacity:0}}
 body[data-theme=aero] .vscreen.cov:not(.fresh) .vfrost{animation:vwob 5s ease-in-out infinite}
 @keyframes vwob{0%,100%{transform:translate(-50%,-50%)}30%{transform:translate(calc(-50% + 1.5px),calc(-50% - 2px)) scale(1.02)}65%{transform:translate(calc(-50% - 1.5px),calc(-50% + 1px)) scale(.99)}}
-body[data-theme=aero] .vfrost{width:calc(80px / var(--vs,1));height:calc(80px / var(--vs,1));background:radial-gradient(circle at 50% 55%,rgba(228,242,255,.9) 0,rgba(214,234,255,.82) 26%,rgba(200,226,255,.55) 40%,rgba(200,226,255,0) 58%),radial-gradient(circle at 50% 80%,rgba(170,240,255,.5),rgba(170,240,255,0) 45%),radial-gradient(circle at 32% 26%,rgba(255,255,255,.75) 0 7%,rgba(255,255,255,.12) 18%,rgba(255,255,255,0) 36%),radial-gradient(circle,rgba(160,230,255,.05) 55%,rgba(255,255,255,.35) 74%,rgba(150,215,255,.4) 88%,rgba(255,255,255,.75));box-shadow:0 4px 12px rgba(20,60,160,.18)}
-body[data-theme=cyber] .vfrost{background:radial-gradient(circle,rgba(10,10,20,.88) 0,rgba(10,10,20,.82) 36%,rgba(10,10,20,0) 60%);box-shadow:inset 0 0 0 1px rgba(138,149,255,.45),0 0 12px rgba(138,149,255,.25)}
-body[data-theme=dark] .vfrost{background:radial-gradient(circle,rgba(14,10,7,.9) 0,rgba(14,10,7,.84) 36%,rgba(14,10,7,0) 60%);box-shadow:inset 0 0 0 1px rgba(184,149,90,.55),0 0 14px rgba(220,150,70,.18)}
-body[data-theme=light] .vfrost{background:radial-gradient(circle,rgba(251,247,238,.88) 0,rgba(251,247,238,.8) 36%,rgba(251,247,238,0) 60%);box-shadow:inset 0 0 0 1px rgba(251,243,226,.55)}
+body[data-theme=aero] .vfrost{width:calc(80px / var(--vs,1));height:calc(80px / var(--vs,1));background:radial-gradient(circle at 50% 55%,rgb(232,244,255) 0,rgb(220,237,255) 30%,rgba(205,229,255,.85) 42%,rgba(200,226,255,0) 60%),radial-gradient(circle at 50% 80%,rgba(170,240,255,.5),rgba(170,240,255,0) 45%),radial-gradient(circle at 32% 26%,rgba(255,255,255,.75) 0 7%,rgba(255,255,255,.12) 18%,rgba(255,255,255,0) 36%),radial-gradient(circle,rgba(160,230,255,.05) 55%,rgba(255,255,255,.35) 74%,rgba(150,215,255,.4) 88%,rgba(255,255,255,.75));box-shadow:0 4px 12px rgba(20,60,160,.18)}
+body[data-theme=cyber] .vfrost{background:radial-gradient(circle,rgb(10,10,20) 0,rgb(10,10,20) 38%,rgba(10,10,20,0) 60%);box-shadow:inset 0 0 0 1px rgba(138,149,255,.45),0 0 12px rgba(138,149,255,.25)}
+body[data-theme=dark] .vfrost{background:radial-gradient(circle,rgb(14,10,7) 0,rgb(14,10,7) 38%,rgba(14,10,7,0) 60%);box-shadow:inset 0 0 0 1px rgba(184,149,90,.55),0 0 14px rgba(220,150,70,.18)}
+body[data-theme=light] .vfrost{background:radial-gradient(circle,rgb(244,238,226) 0,rgb(244,238,226) 38%,rgba(251,247,238,0) 60%);box-shadow:inset 0 0 0 1px rgba(251,243,226,.55)}
 .vqb{flex:none;align-self:center;height:auto;max-height:20px;box-sizing:border-box;font:700 9.5px/1 var(--f-ui);letter-spacing:.04em;padding:3px 5px;border-radius:4px;border:1px solid currentColor;opacity:.75}
 .vqb:empty{display:none}
 .vqb.is-hd{opacity:1}
@@ -809,7 +809,7 @@ body[data-theme=light] .vfrost{background:radial-gradient(circle,rgba(251,247,23
 .vknob{width:12px;height:12px!important;margin:-6px 0 0 -6px!important;border-radius:50%;background:#fff;transform:scale(0);transition:transform .15s}
 .vprog:hover .vknob,.vprog.drag .vknob{transform:scale(1)}
 .vprog:hover .vrail,.vprog:hover .vbuf,.vprog:hover .vfill{height:6px;margin-top:-3px}
-.vmenu{position:absolute;right:8px;bottom:46px;display:flex;flex-direction:column;padding:6px;border-radius:10px;background:rgba(15,15,20,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);min-width:170px;max-height:calc(100% - 56px);overflow:auto}
+.vmenu{position:absolute;right:8px;bottom:46px;display:flex;flex-direction:column;padding:6px;border-radius:10px;background:rgba(15,15,20,.95);min-width:170px;max-height:calc(100% - 56px);overflow:auto}
 .vframe>.vmenu{z-index:10;max-height:none;bottom:58px;right:18px}
 body[data-theme=light] .vframe>.vmenu{bottom:84px}
 .vmh{padding:8px 12px 4px;font:600 10px var(--f-ui);letter-spacing:.14em;text-transform:uppercase;opacity:.6}
@@ -826,8 +826,8 @@ body[data-theme=light] .vframe>.vmenu{bottom:84px}
 
 /* Aero: a floating glass pill with gel buttons */
 body[data-theme=aero] .vctl{left:8px;right:8px;bottom:8px;padding:5px 8px;border-radius:14px;color:#17306f;
-  background:linear-gradient(180deg,rgba(255,255,255,.88),rgba(228,241,255,.74) 45%,rgba(212,232,255,.7) 60%,rgba(232,244,255,.8));
-  border:1px solid rgba(255,255,255,.9);box-shadow:0 8px 22px rgba(10,40,120,.3),inset 0 1px 0 #fff;-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4)}
+  background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(232,243,255,.9) 45%,rgba(218,235,255,.88) 60%,rgba(236,246,255,.92));
+  border:1px solid rgba(255,255,255,.9);box-shadow:0 8px 22px rgba(10,40,120,.3),inset 0 1px 0 #fff;}
 body[data-theme=aero] .vctl button:hover{background:rgba(255,255,255,.7)}
 body[data-theme=aero] .vplay{position:relative;color:#fff;border-radius:50%!important;width:32px;height:32px!important;
   background:radial-gradient(120% 80% at 50% 115%,#c8fff6 0,#5fdcff 28%,#2a9cff 52%,#1463e0 78%,#0b3fae);
