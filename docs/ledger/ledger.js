@@ -133,6 +133,56 @@ const X_ICON = '<svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
 const view = { tab: 'tasks', woDay: null, woEdit: false, editing: null, histMonth: null, histDay: null };
 let artKey = '';
 
+// ---------- video ----------
+// A YouTube video beside the list, added from Settings. Nothing is shown until a link is pasted there,
+// and hiding it removes the frame entirely. Kept on this device only.
+const VKEY = 'ledger-video';
+let video = (() => { try { return JSON.parse(localStorage.getItem(VKEY)) || {}; } catch (e) { return {}; } })();
+const videoSave = () => { try { localStorage.setItem(VKEY, JSON.stringify(video)); } catch (e) { /* optional */ } };
+// youtu.be/ID, youtube.com/watch?v=ID, /shorts/ID, /live/ID, /embed/ID, m./music. hosts, ?t=90 / 1m30s, playlists
+export function ytParse(raw) {
+  let u; try { u = new URL(String(raw).trim().replace(/^(?!https?:)/, 'https://')); } catch (e) { return null; }
+  const host = u.hostname.replace(/^(www|m|music)\./, '');
+  let id = null;
+  if (host === 'youtu.be') id = u.pathname.slice(1).split('/')[0];
+  else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+    id = u.searchParams.get('v') || (u.pathname.match(/^\/(?:shorts|live|embed|v)\/([\w-]{11})/) || [])[1] || null;
+  } else return null;
+  const list = u.searchParams.get('list');
+  if (id && !/^[\w-]{11}$/.test(id)) id = null;
+  if (!id && !list) return null;
+  const tt = u.searchParams.get('t') || u.searchParams.get('start') || '';
+  const m = String(tt).match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/);
+  const start = m ? (+(m[1] || 0)) * 3600 + (+(m[2] || 0)) * 60 + (+(m[3] || 0)) : 0;
+  return { id, list, start };
+}
+function videoSrc(v, autoplay) {
+  const q = new URLSearchParams({ rel: '0', modestbranding: '1', playsinline: '1' });
+  if (v.start) q.set('start', v.start);
+  if (autoplay) q.set('autoplay', '1');
+  if (v.list) q.set('list', v.list);
+  return `https://www.youtube-nocookie.com/embed/${v.id || 'videoseries'}?${q}`;
+}
+// builds (or removes) the player; called only when the video itself changes, so theme switches and
+// re-renders never restart playback
+function placeVideo(autoplay) {
+  const dock = $('vdock'), v = video.on && ytParse(video.url);
+  document.body.classList.toggle('has-video', !!v);
+  if (!v) { dock.hidden = true; dock.innerHTML = ''; return; }
+  const src = videoSrc(v, autoplay);
+  const frame = dock.querySelector('iframe');
+  if (frame && frame.dataset.key === video.url) { dock.hidden = false; return; }
+  dock.innerHTML = `<div class="vframe">
+      <i class="vc tl"></i><i class="vc tr"></i><i class="vc bl"></i><i class="vc br"></i><i class="vpin" aria-hidden="true"></i>
+      <div class="vbar"><span class="orbs" aria-hidden="true"><i></i><i></i><i></i></span><span class="vlabel"></span>
+        <button class="vclose" aria-label="Hide video">${X_ICON}</button></div>
+      <div class="vscreen"><iframe src="${esc(src)}" data-key="${esc(video.url)}" title="YouTube video" loading="lazy"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>`;
+  dock.hidden = false;
+  dock.querySelector('.vclose').onclick = () => { video.on = false; videoSave(); placeVideo(); if (view.tab === 'settings') renderPanel(); };
+  dock.querySelector('.vlabel').textContent = T().vlabel || '';
+}
+
 function render() {
   const b = document.body, st = S.settings;
   b.dataset.theme = st.theme; b.dataset.layout = st.layout; b.dataset.check = checkStyle(); b.dataset.tab = view.tab;
@@ -145,6 +195,7 @@ function render() {
   const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = t.color;
   // what shows behind the art, e.g. in the iPhone home-bar strip, is the colour of the theme's bottom edge
   document.documentElement.dataset.theme = st.theme;
+  const vl = document.querySelector('#vdock .vlabel'); if (vl) vl.textContent = t.vlabel || '';
   tickClocks();
 }
 
@@ -455,6 +506,12 @@ function settingsHTML(c) {
           <input type="password" id="pw" placeholder="Password" autocomplete="current-password" required minlength="6">
           <div class="frow"><button class="btn solid" type="submit">Sign in</button><button class="btn" type="button" id="signup">Create account</button><button class="btn link" type="button" id="reset">Forgot password</button></div>
           <p class="note err" id="autherr" role="alert"></p></form>`}</section>
+    <section><h3>Video</h3>
+      <form class="frow" id="vform" novalidate><input type="url" id="vlink" placeholder="Paste a YouTube link" value="${esc(video.url || '')}" inputmode="url" autocomplete="off">
+        <button class="btn solid" type="submit">${video.on && video.url ? 'Update' : 'Show'}</button></form>
+      ${video.url ? `<div class="frow"><button class="btn" id="vtoggle">${video.on ? 'Hide video' : 'Show video'}</button><button class="btn link" id="vforget">Forget link</button></div>` : ''}
+      <p class="note err" id="verr" role="alert"></p>
+      <p class="note">Plays beside your list, on this device only. A few videos can’t be played outside YouTube.</p></section>
     <section><h3>Workout</h3><div class="frow"><button class="btn" id="import">Copy routine from The System</button></div>
       <p class="note">Replaces Ledger’s Monday, Wednesday and Friday routines with the ones saved in The System.</p></section>
     <p class="note fine"><a href="../">Open The System</a></p></div>`;
@@ -478,6 +535,14 @@ function bindSettings(p) {
     $('reset').onclick = () => { const em = $('em').value.trim(); if (!em) return err('Type your email first.'); Sync.resetPassword(em).then(() => err('Reset link sent. Check your email.')).catch(x => err(nice(x))); };
   }
   const so = $('signout'); if (so) so.onclick = () => Sync.signOutUser();
+  $('vform').onsubmit = e => {
+    e.preventDefault();
+    const url = $('vlink').value.trim();
+    if (!ytParse(url)) { $('verr').textContent = 'That doesn’t look like a YouTube link.'; return; }
+    video = { url, on: true }; videoSave(); placeVideo(true); renderPanel();
+  };
+  const vt = $('vtoggle'); if (vt) vt.onclick = () => { video.on = !video.on; videoSave(); placeVideo(video.on); renderPanel(); };
+  const vf = $('vforget'); if (vf) vf.onclick = () => { video = {}; videoSave(); placeVideo(); renderPanel(); };
   $('import').onclick = async () => {
     let w = null;
     try { const old = JSON.parse(localStorage.getItem(OLD_KEY)); w = old && old.workouts; } catch (e) { /* none */ }
@@ -610,6 +675,7 @@ for (const ms of [50, 300, 1000]) setTimeout(fitArt, ms);   // iOS settles the r
 // Safari in a browser tab ignores user-scalable=no, so stop pinch-zoom here too (the layout is built for the screen it's on)
 for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
 render();
+placeVideo(false);
 if (matchMedia('(min-width: 861px)').matches && view.tab === 'tasks') { const a = $('addin'); if (a) a.focus({ preventScroll: true }); }
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
