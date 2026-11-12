@@ -1,0 +1,522 @@
+// Ledger: a plain daily to-do list. Every morning the page is blank; nothing carries over.
+import * as Sync from './lsync.js';
+import { THEMES, ART, roman, word } from './themes.js';
+
+const KEY = 'ledger-v1', REST_KEY = 'ledger-rest', OLD_KEY = 'the-system-save-v1';
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const uid = () => 'l' + Math.random().toString(36).slice(2, 9);
+const pad = n => String(n).padStart(2, '0');
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+
+// Book-title case, same rule as The System: small joining words stay lower case unless first or last.
+const SMALL = new Set('a an the and but or nor for so yet as at by in of off on per to up via vs with from into onto over than'.split(' '));
+export function taskCase(t) {
+  const w = String(t || '').replace(/\s+/g, ' ').trim().split(' ');
+  const first = w.findIndex(x => /\p{L}/u.test(x)), last = w.map(x => /\p{L}/u.test(x)).lastIndexOf(true);
+  return w.map((x, i) => {
+    const core = x.replace(/^[^\p{L}\p{N}]+/u, '').toLowerCase();
+    if (SMALL.has(core) && i !== first && i !== last && !/[:—]$/.test(w[i - 1] || '')) return x;
+    return x.split('-').map(p => p.replace(/^([^\p{L}\p{N}]*)(\p{Ll})/u, (m, pre, c) => pre + c.toUpperCase())).join('-');
+  }).join(' ');
+}
+
+const DEFAULT_WORKOUTS = {
+  mon: [
+    { name: 'Wall Handstand Holds', sets: 3, reps: 'attempts' },
+    { name: 'Chin-Ups (+15 lb)', sets: 3, reps: '9, 8, 8' },
+    { name: 'Feet-Elevated Rows (Neutral Grip)', sets: 3, reps: '10' },
+    { name: 'Static Lunges', sets: 3, reps: '11', per: 'leg' },
+    { name: 'Weighted V-Ups (5 lb)', sets: 3, reps: '12' }],
+  wed: [
+    { name: 'Single-Arm Dumbbell Curls', sets: 3, reps: '10', per: 'arm' },
+    { name: 'Single-Arm Hammer Curls', sets: 3, reps: '10', per: 'arm' },
+    { name: 'Isometric Hold (90°)', sets: 3, reps: '25s', per: 'arm' },
+    { name: 'Abs Circuit', rounds: 3, moves: [{ name: 'Leg Raises', reps: '12' }, { name: 'Reverse Crunches', reps: '10' }, { name: 'Side Plank Reach-Throughs', reps: '10', per: 'side' }] }],
+  fri: [
+    { name: 'Pike Push-Ups', sets: 3, reps: '11' },
+    { name: 'Dips', sets: 3, reps: '9' },
+    { name: 'Diamond Push-Ups', sets: 3, reps: '11' },
+    { name: 'Static Lunges', sets: 3, reps: '11', per: 'leg' },
+    { name: 'Hanging Leg Raises', sets: 3, reps: '11' }]
+};
+// give every exercise and move an id (The System's saves already have them; the defaults don't)
+function withIds(w) {
+  const o = JSON.parse(JSON.stringify(w || {}));
+  for (const k of ['mon', 'wed', 'fri']) {
+    o[k] = Array.isArray(o[k]) ? o[k] : [];
+    for (const x of o[k]) { x.id = x.id || uid(); if (x.moves) for (const m of x.moves) m.id = m.id || uid(); }
+  }
+  return o;
+}
+
+// ---------- state ----------
+const SETTINGS = { theme: 'light', layout: 'right', check: 'theme', restSec: 90 };
+let S = load();
+function load() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { /* start fresh */ }
+  if (!s || typeof s !== 'object') {
+    s = { v: 1, days: {}, dirty: { main: false, days: {} } };
+    // first run: bring the workout over from The System on this device
+    let old = null;
+    try { old = JSON.parse(localStorage.getItem(OLD_KEY)); } catch (e) { /* none */ }
+    if (old && old.workouts) { s.workouts = withIds(old.workouts); s.woSource = 'system'; if (old.settings && old.settings.restSec) s.restSec = old.settings.restSec; }
+  }
+  s.settings = Object.assign({}, SETTINGS, s.settings);
+  if (s.restSec) { s.settings.restSec = s.restSec; delete s.restSec; }
+  if (!s.workouts) { s.workouts = withIds(DEFAULT_WORKOUTS); s.woSource = 'default'; }
+  s.days = s.days || {}; s.dirty = s.dirty || { main: false, days: {} }; s.dirty.days = s.dirty.days || {};
+  // only today matters; keep a couple of days so a late-night tab doesn't lose anything
+  const keep = new Set([today(), ...Object.keys(s.days).sort().slice(-3)]);
+  for (const d of Object.keys(s.days)) if (!keep.has(d)) delete s.days[d];
+  return s;
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage full */ } }
+const dayOf = d => (S.days[d] = S.days[d] || { tasks: {}, wo: {} });
+const T = () => THEMES[S.settings.theme] || THEMES.light;
+const checkStyle = () => S.settings.check === 'theme' ? T().check : S.settings.check;
+
+function setTask(id, task) {
+  const d = today(), day = dayOf(d);
+  if (task) day.tasks[id] = task; else delete day.tasks[id];
+  if (!Sync.putTask(d, id, task)) S.dirty.days[d] = true;
+  save();
+}
+function setWo(id, n) {
+  const d = today(), day = dayOf(d);
+  if (n) day.wo[id] = n; else delete day.wo[id];
+  if (!Sync.putWo(d, id, n)) S.dirty.days[d] = true;
+  save();
+}
+function setMain(field) {
+  if (field === 'workouts') S.woSource = 'edited';
+  if (!Sync.putMain(field, S[field])) S.dirty.main = true;
+  save();
+}
+
+// ---------- dates ----------
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const ORD = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth', 'thirteenth',
+  'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth', 'twentieth', 'twenty-first', 'twenty-second', 'twenty-third',
+  'twenty-fourth', 'twenty-fifth', 'twenty-sixth', 'twenty-seventh', 'twenty-eighth', 'twenty-ninth', 'thirtieth', 'thirty-first'];
+function ctx() {
+  const now = new Date(), day = S.days[today()] || { tasks: {} };
+  const list = Object.entries(day.tasks).map(([id, t]) => Object.assign({ id }, t)).sort((a, b) => (a.at || 0) - (b.at || 0));
+  return {
+    now, list, done: list.filter(t => t.done).length, total: list.length,
+    dow: DAYS[now.getDay()], month: MONTHS[now.getMonth()], date: now.getDate(), year: now.getFullYear(),
+    ord: ORD[now.getDate()], doy: Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 864e5),
+    user: Sync.getUser(), status: Sync.getStatus(), layout: S.settings.layout, tab: view.tab
+  };
+}
+
+// ---------- checkboxes ----------
+// theme defaults: aero gel bead, cyber crossed square, dark wax seal, light ink tick; or a plain circle/square/star everywhere
+const CHECKS = {
+  gel: '<span class="ck-gel"><i></i></span>',
+  xbox: '<span class="ck-x"></span>',
+  seal: '<span class="ck-seal"><svg viewBox="0 0 40 40"><path class="wax" d="M20 2.6c2.2 0 3 1.6 4.9 1.9 2 .3 3.6-.8 5.3.3 1.6 1.1 1.4 3 2.6 4.6 1.2 1.6 3 2 3.6 3.9.6 1.9-.6 3.3-.5 5.3.1 2 1.5 3.3 1.1 5.2-.4 1.9-2.3 2.5-3.2 4.2-.9 1.8-.5 3.7-2 5-1.5 1.4-3.3.8-5.2 1.5-1.9.7-2.8 2.4-4.7 2.5-2 .1-3-1.6-4.9-2.1-1.9-.5-3.7.4-5.3-.7-1.7-1.1-1.5-3.1-2.6-4.7-1.2-1.6-3.1-2.1-3.6-4-.6-1.9.7-3.4.6-5.3 0-2-1.4-3.3-1-5.2.5-1.9 2.4-2.4 3.4-4.1.9-1.7.6-3.6 2.1-4.9 1.5-1.3 3.4-.6 5.2-1.2C17 4.2 17.9 2.6 20 2.6Z"/><circle class="ring" cx="20" cy="20" r="11.5"/><text x="20" y="25.2">L</text></svg></span>',
+  tick: '<span class="ck-tick"><svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="12.5"/><path d="M8.5 15.5c2.2 1.6 3.8 3.6 5 6 2.6-6.4 6.2-11 10-14"/></svg></span>',
+  circle: '<span class="ck-circle"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.25"/><path d="M7.2 12.4l3.2 3.1 6.4-7"/></svg></span>',
+  square: '<span class="ck-square"><svg viewBox="0 0 24 24"><rect x="1.75" y="1.75" width="20.5" height="20.5" rx="4.5"/><path d="M7.2 12.4l3.2 3.1 6.4-7"/></svg></span>',
+  star: '<span class="ck-star"><svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.4 7 .8-5.2 4.8 1.4 6.9L12 17.2l-6.2 3.5 1.4-6.9L2 9l7-.8z"/></svg></span>'
+};
+const check = (style = checkStyle()) => CHECKS[style] || CHECKS.circle;
+const X_ICON = '<svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+
+// ---------- view ----------
+const view = { tab: 'tasks', woDay: null, woEdit: false, editing: null };
+let artKey = '';
+
+function render() {
+  const b = document.body, st = S.settings;
+  b.dataset.theme = st.theme; b.dataset.layout = st.layout; b.dataset.check = checkStyle(); b.dataset.tab = view.tab;
+  const c = ctx(), t = T();
+  const key = st.theme;
+  if (artKey !== key) { $('art').innerHTML = ART[st.theme](); artKey = key; }
+  $('brand').innerHTML = t.brand(c);
+  $('side').innerHTML = t.side(c);
+  renderPanel(c);
+  const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = t.color;
+  tickClocks();
+}
+
+function renderPanel(c = ctx()) {
+  const t = T();
+  const tabs = [['tasks', t.tabNames[0]], ['workout', t.tabNames[1]], ['settings', t.tabNames[2]]];
+  $('panel').innerHTML = `${t.head(c)}
+    <div class="pbody" id="pbody">${view.tab === 'tasks' ? tasksHTML(c) : view.tab === 'workout' ? workoutHTML() : settingsHTML(c)}</div>
+    <footer class="pfoot"><nav class="tabs" role="tablist">${tabs.map(([k, n], i) => `${i ? '<i class="sep" aria-hidden="true"></i>' : ''}<button role="tab" class="${view.tab === k ? 'on' : ''}" data-tab="${k}" aria-selected="${view.tab === k}">${n}</button>`).join('')}</nav>
+      <div class="count" aria-label="${c.done} of ${c.total} done">${t.count(c)}</div></footer>`;
+  bindPanel();
+}
+
+function tasksHTML(c) {
+  const t = T();
+  const rows = c.list.map((x, i) => `<div class="task ${x.done ? 'done' : ''}" data-id="${x.id}">
+      <button class="ck" aria-label="${x.done ? 'Mark not done' : 'Mark done'}" aria-pressed="${!!x.done}">${check()}</button>
+      ${view.editing === x.id ? `<input class="t-edit" value="${esc(x.t)}" maxlength="120" aria-label="Edit task">` : `<span class="t">${esc(x.t)}</span>`}
+      <span class="meta">${t.num(i + 1, x.done)}</span>
+      <button class="del" aria-label="Remove">${X_ICON}</button></div>`).join('');
+  return `<form class="addrow" id="addform" autocomplete="off">${t.addIcon || ''}<input id="addin" maxlength="120" placeholder="${esc(t.placeholder)}" aria-label="New task" enterkeyhint="done">
+      <button class="addbtn" type="submit">${t.addLabel}</button></form>
+    <div class="list" id="list">${rows || `<div class="empty">${t.empty}</div>`}</div>`;
+}
+
+// ---------- workout (ported from The System) ----------
+const WDAY = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+const WORKOUT_DAYS = [['mon', 'Monday'], ['wed', 'Wednesday'], ['fri', 'Friday']];
+const todayKey = () => Object.keys(WDAY).find(k => WDAY[k] === new Date().getDay());
+function woAmount(x) {
+  const reps = String(x.reps || '').trim(), per = x.per ? ` per ${x.per}` : '';
+  if (x.sets == null) return reps + per;
+  if (reps.includes(',')) return reps.split(',').map(r => r.trim()).filter(Boolean).join(', ') + per;
+  if (reps && !/\d/.test(reps)) return `${x.sets} ${reps}`;
+  return reps ? `${x.sets} × ${reps}${per}` : `${x.sets} sets`;
+}
+function perSet(x) {
+  const r = String(x.reps).split(',').map(v => v.trim()).filter(Boolean);
+  return Array.from({ length: x.sets }, (_, k) => r[k] || r[r.length - 1] || '10');
+}
+let rest = (() => { try { return JSON.parse(localStorage.getItem(REST_KEY)) || {}; } catch (e) { return {}; } })();
+const restSave = () => { try { localStorage.setItem(REST_KEY, JSON.stringify(rest)); } catch (e) { /* optional */ } };
+const restLen = () => S.settings.restSec || 90;
+const restLeft = () => rest.end ? Math.max(0, (rest.end - Date.now()) / 1000) : rest.paused != null ? rest.paused : restLen();
+const mmss = t => { t = Math.ceil(t); return `${Math.floor(t / 60)}:${pad(t % 60)}`; };
+const RING = 2 * Math.PI * 54;
+const ringOffset = () => (RING * (1 - ((rest.end || rest.paused != null) ? restLeft() / restLen() : 1))).toFixed(2);
+function restHTML() {
+  const run = !!rest.end, paused = rest.paused != null, left = restLeft();
+  return `<div class="rest ${run ? 'run' : ''} ${paused ? 'paused' : ''}" id="rest">
+    <div class="rest-dial"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rest-ticks" cx="60" cy="60" r="58"/><circle class="rest-track" cx="60" cy="60" r="54"/>
+      <circle class="rest-ring" id="rest-ring" cx="60" cy="60" r="54" stroke-dasharray="${RING.toFixed(2)}" stroke-dashoffset="${ringOffset()}"/></svg>
+      <div class="rest-face"><span class="rest-label">Rest</span>${run || paused ? `<span class="rest-time" id="rest-time">${mmss(left)}</span>`
+        : `<input class="rest-time rest-input" id="rest-time" value="${mmss(left)}" inputmode="numeric" maxlength="5" aria-label="Rest length">`}</div></div>
+    <div class="rest-btns">${run || paused ? `<button class="btn solid" data-rest="${run ? 'pause' : 'resume'}">${run ? 'Pause' : 'Resume'}</button><button class="btn" data-rest="reset">Reset</button>`
+      : `<button class="btn solid" data-rest="start">Start</button><div class="rest-adj"><button class="btn" data-rest="-15">−15s</button><button class="btn" data-rest="+15">+15s</button></div>`}</div></div>`;
+}
+function parseRest(v) {
+  v = String(v).trim();
+  const m = v.match(/^(\d{1,2}):(\d{1,2})$/);
+  const sec = m ? +m[1] * 60 + +m[2] : /^\d+$/.test(v) ? (+v <= 10 ? +v * 60 : +v) : NaN;
+  return isNaN(sec) ? null : Math.min(600, Math.max(5, sec));
+}
+function restBind() {
+  const el = $('rest'); if (!el) return;
+  const inp = el.querySelector('.rest-input');
+  if (inp) {
+    inp.onfocus = () => inp.select();
+    inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
+    inp.onchange = () => { const v = parseRest(inp.value); if (v) { S.settings.restSec = v; setMain('settings'); } inp.value = mmss(restLen()); };
+  }
+  el.querySelectorAll('[data-rest]').forEach(b => b.onclick = () => {
+    const a = b.dataset.rest;
+    if (a === 'start') { rest = { end: Date.now() + restLen() * 1000 }; chime(0); }
+    else if (a === 'pause') rest = { paused: restLeft() };
+    else if (a === 'resume') rest = { end: Date.now() + rest.paused * 1000 };
+    else if (a === 'reset') rest = {};
+    else { S.settings.restSec = Math.min(600, Math.max(5, restLen() + +a)); setMain('settings'); }
+    restSave(); el.outerHTML = restHTML(); restBind();
+  });
+}
+setInterval(() => {
+  if (!rest.end) return;
+  const el = $('rest');
+  if (Date.now() >= rest.end) {
+    rest = {}; restSave(); chime(1);
+    try { navigator.vibrate && navigator.vibrate([200, 150, 200]); } catch (e) { /* no vibration */ }
+    toast('Rest is over. Next set.');
+    if (el) { el.outerHTML = restHTML(); restBind(); }
+  } else if (el) { $('rest-time').textContent = mmss(restLeft()); $('rest-ring').setAttribute('stroke-dashoffset', ringOffset()); }
+}, 250);
+let actx = null;
+function chime(big) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const notes = big ? [880, 1174.7, 1568] : [660];
+    notes.forEach((f, i) => {
+      const o = actx.createOscillator(), g = actx.createGain(), t0 = actx.currentTime + i * .14;
+      o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(.12, t0 + .02); g.gain.exponentialRampToValueAtTime(.0001, t0 + .6);
+      o.start(t0); o.stop(t0 + .65);
+    });
+  } catch (e) { /* no audio */ }
+}
+
+const woTotal = x => x.moves ? (x.rounds || 1) : (x.sets || 1);
+function workoutHTML() {
+  const tk = todayKey(), order = WORKOUT_DAYS.map(w => w[0]);
+  if (!view.woDay) view.woDay = order.includes(tk) ? tk : order.find(k => WDAY[k] > WDAY[tk]) || order[0];
+  const key = view.woDay, list = S.workouts[key] || [], isToday = key === tk;
+  const wo = dayOf(today()).wo || {};
+  const doneOf = x => (wo[x.id] || 0) >= woTotal(x);
+  const pips = (n, t) => `<span class="pips">${Array.from({ length: t }, (_, k) => `<i class="${k < n ? 'on' : ''}"></i>`).join('')}</span>`;
+  const nDone = isToday ? list.filter(doneOf).length : 0;
+  const tabs = WORKOUT_DAYS.map(([k, n]) => `<button class="${k === key ? 'on' : ''}" data-wday="${k}">${n.slice(0, 3)}${k === tk ? '<i class="today-dot"></i>' : ''}</button>`).join('');
+  const PER = ['', 'arm', 'leg', 'side'];
+  const perSel = (v, i, j) => `<select data-f="per" data-i="${i}"${j != null ? ` data-j="${j}"` : ''}>${PER.map(o => `<option value="${o}" ${o === (v || '') ? 'selected' : ''}>${o ? 'per ' + o : '—'}</option>`).join('')}</select>`;
+  let body;
+  if (view.woEdit) {
+    body = list.map((x, i) => x.moves
+      ? `<div class="wo-edit" data-i="${i}">
+          <div class="frow"><input type="text" data-f="name" data-i="${i}" value="${esc(x.name)}" maxlength="50">
+            <label class="num">Rounds <input type="number" data-f="rounds" data-i="${i}" value="${x.rounds || 1}" min="1" max="20"></label>
+            <button class="del" data-wdel="${i}" aria-label="Remove">${X_ICON}</button></div>
+          ${x.moves.map((m, j) => `<div class="frow move"><input type="text" data-f="name" data-i="${i}" data-j="${j}" value="${esc(m.name)}" maxlength="50">
+            <input type="text" class="reps" data-f="reps" data-i="${i}" data-j="${j}" value="${esc(m.reps)}" maxlength="20" placeholder="reps">
+            ${perSel(m.per, i, j)}<button class="del" data-wdel="${i}" data-j="${j}" aria-label="Remove">${X_ICON}</button></div>`).join('')}
+          <button class="btn small" data-wadd="move" data-i="${i}">+ Move</button></div>`
+      : (() => {
+          const varied = String(x.reps).includes(','), per = varied ? perSet(x) : [];
+          return `<div class="wo-edit" data-i="${i}"><div class="frow"><input type="text" data-f="name" data-i="${i}" value="${esc(x.name)}" maxlength="50">
+            <button class="del" data-wdel="${i}" aria-label="Remove">${X_ICON}</button></div>
+          <div class="frow"><label class="num">Sets <input type="number" data-f="sets" data-i="${i}" value="${x.sets}" min="1" max="20"></label>
+            <select data-mode="${i}"><option value="same" ${varied ? '' : 'selected'}>Same reps each set</option><option value="varied" ${varied ? 'selected' : ''}>Different each set</option></select>
+            ${perSel(x.per, i)}</div>
+          <div class="frow">${varied
+            ? per.map((r, k) => `<label class="num">Set ${k + 1} <input type="text" class="reps" data-setrep="${k}" data-i="${i}" value="${esc(r)}" maxlength="8"></label>`).join('')
+            : `<label class="num">Reps <input type="text" class="reps" data-f="reps" data-i="${i}" value="${esc(x.reps)}" maxlength="20" placeholder="10, 25s…"></label>`}</div></div>`;
+        })()).join('')
+      + `<div class="wo-addrow"><button class="btn" data-wadd="ex">+ Exercise</button><button class="btn" data-wadd="circuit">+ Circuit</button></div>
+         <p class="note">Reps can be a number (10), a time (25s) or a word (attempts). Pick “Different each set” to give every set its own count.</p>`;
+  } else {
+    body = list.map(x => {
+      const isDone = isToday && doneOf(x), r = isToday ? Math.min(wo[x.id] || 0, woTotal(x)) : 0;
+      return `<div class="task wo-row ${isDone ? 'done' : ''} ${isToday ? '' : 'plan'}" data-wid="${x.id}">
+          <button class="ck" data-all aria-label="Mark every set done">${check()}</button>
+          <div class="wo-name"><span class="t">${esc(x.name)}</span>${isToday ? pips(r, woTotal(x)) : ''}
+            ${x.moves ? `<span class="moves">${x.moves.map(m => `<span><b>${esc(m.name)}</b> <em>${esc(woAmount(m))}</em></span>`).join('')}</span>` : ''}</div>
+          <span class="meta amt">${x.moves ? `${x.rounds || 1} rounds` : esc(woAmount(x))}</span></div>`;
+    }).join('') || '<div class="empty">No exercises yet. Tap Edit to add some.</div>';
+  }
+  return `<div class="wo-head"><div class="subtabs">${tabs}</div><button class="btn ${view.woEdit ? 'solid' : ''}" id="wo-edit">${view.woEdit ? 'Done' : 'Edit'}</button></div>
+    ${view.woEdit ? '' : restHTML()}
+    <div class="wo-note">${isToday ? `Today · <b>${nDone} of ${list.length}</b> done${list.length ? ' · tap a row for one set' : ''}` : `${WORKOUT_DAYS.find(w => w[0] === key)[1]}’s plan`}</div>
+    <div class="list wo-list">${body}</div>`;
+}
+function bindWorkout(p) {
+  const key = view.woDay, list = S.workouts[key] || [];
+  p.querySelectorAll('[data-wday]').forEach(b => b.onclick = () => { view.woDay = b.dataset.wday; renderPanel(); });
+  $('wo-edit').onclick = () => { view.woEdit = !view.woEdit; renderPanel(); };
+  restBind();
+  const changed = re => { S.workouts = Object.assign({}, S.workouts, { [key]: list }); setMain('workouts'); if (re) renderPanel(); };
+  if (view.woEdit) {
+    const item = el => { const x = list[+el.dataset.i]; return el.dataset.j != null ? x.moves[+el.dataset.j] : x; };
+    p.querySelectorAll('[data-f]').forEach(el => el.onchange = () => {
+      const t = item(el), f = el.dataset.f; let v = el.value.trim();
+      if (f === 'sets' || f === 'rounds') v = Math.max(1, Math.min(20, parseInt(v, 10) || 1));
+      if (f === 'name' && !v) { el.value = t.name; return; }
+      if (f === 'per' && !v) delete t.per; else t[f] = v;
+      if (f === 'sets' && String(t.reps).includes(',')) t.reps = perSet(t).join(', ');
+      changed(f === 'sets');
+    });
+    p.querySelectorAll('[data-mode]').forEach(el => el.onchange = () => {
+      const t = list[+el.dataset.mode], first = String(t.reps).split(',')[0].trim() || '10';
+      t.reps = el.value === 'varied' ? Array(t.sets).fill(first).join(', ') : first;
+      changed(true);
+    });
+    p.querySelectorAll('[data-setrep]').forEach(el => el.onchange = () => {
+      const t = list[+el.dataset.i], r = perSet(t);
+      r[+el.dataset.setrep] = el.value.trim() || r[+el.dataset.setrep];
+      t.reps = r.join(', '); changed(false);
+    });
+    p.querySelectorAll('[data-wdel]').forEach(b => b.onclick = () => {
+      const x = list[+b.dataset.wdel];
+      if (b.dataset.j != null) { if (x.moves.length > 1) x.moves.splice(+b.dataset.j, 1); }
+      else if (confirm(`Remove ${x.name}?`)) list.splice(+b.dataset.wdel, 1);
+      changed(true);
+    });
+    p.querySelectorAll('[data-wadd]').forEach(b => b.onclick = () => {
+      const k = b.dataset.wadd;
+      if (k === 'move') list[+b.dataset.i].moves.push({ id: uid(), name: 'New Move', reps: '10' });
+      else if (k === 'circuit') list.push({ id: uid(), name: 'New Circuit', rounds: 3, moves: [{ id: uid(), name: 'New Move', reps: '10' }] });
+      else list.push({ id: uid(), name: 'New Exercise', sets: 3, reps: '10' });
+      changed(true);
+    });
+    return;
+  }
+  if (key !== todayKey()) return;
+  // tap a row for one set (one round of a circuit); the checkbox marks every set; a finished row starts over
+  p.querySelectorAll('.wo-row').forEach(row => row.onclick = e => {
+    const x = list.find(q => q.id === row.dataset.wid); if (!x) return;
+    const wo = dayOf(today()).wo, was = wo[x.id] || 0, t = woTotal(x);
+    const n = e.target.closest('[data-all]') ? (was >= t ? 0 : t) : (was >= t ? 0 : was + 1);
+    setWo(x.id, n);
+    renderPanel();
+    if (n >= t) pop(document.querySelector(`.wo-row[data-wid="${x.id}"] .ck`));
+  });
+}
+
+// ---------- settings ----------
+const LAYOUTS = [['left', 'Left'], ['center', 'Center'], ['right', 'Right']];
+const CK_OPTS = [['theme', 'Theme'], ['circle', 'Circle'], ['square', 'Square'], ['star', 'Star']];
+function settingsHTML(c) {
+  const st = S.settings, u = c.user;
+  const status = { off: 'Not signed in', syncing: 'Syncing…', synced: 'Synced', offline: 'Offline — will sync when back online', error: 'Sync error', unavailable: 'Sync unavailable' }[c.status] || c.status;
+  return `<div class="settings">
+    <section><h3>Theme</h3><div class="themes">${Object.entries(THEMES).map(([k, t]) => `<button class="theme-card tc-${k} ${st.theme === k ? 'on' : ''}" data-theme-pick="${k}" aria-pressed="${st.theme === k}">
+        <span class="tc-art">${t.swatch}</span><span class="tc-name">${t.name}</span></button>`).join('')}</div></section>
+    <section><h3>List position</h3><div class="seg-opts">${LAYOUTS.map(([k, n]) => `<button class="lay ${st.layout === k ? 'on' : ''}" data-layout-pick="${k}" aria-pressed="${st.layout === k}">
+        <span class="lay-pic lay-${k}"><i></i><i></i><i></i></span>${n}</button>`).join('')}</div>
+      <p class="note">Where the list sits on a wide screen. Phones always stack.</p></section>
+    <section><h3>Checkbox</h3><div class="seg-opts">${CK_OPTS.map(([k, n]) => `<button class="ckopt ${st.check === k ? 'on' : ''}" data-check-pick="${k}" aria-pressed="${st.check === k}">
+        <span class="ck done-demo">${check(k === 'theme' ? T().check : k)}</span>${n}</button>`).join('')}</div></section>
+    <section><h3>Rest between sets</h3><div class="frow"><input class="rest-set" id="rest-set" value="${mmss(restLen())}" inputmode="numeric" maxlength="5" aria-label="Rest length">
+      <span class="note">Type 1:30, 90, or 2 for two minutes.</span></div></section>
+    <section><h3>Account</h3>${u ? `<p class="acct">Signed in as <b>${esc(u.email || '')}</b><br><span class="sync-state s-${c.status}">${status}</span></p>
+        <div class="frow"><button class="btn" id="signout">Sign out</button></div>`
+      : `<p class="note">Sign in with your account from The System to keep your list on every device. Your tasks stay on this device until you do.</p>
+        <form class="auth" id="auth"><input type="email" id="em" placeholder="Email" autocomplete="email" required>
+          <input type="password" id="pw" placeholder="Password" autocomplete="current-password" required minlength="6">
+          <div class="frow"><button class="btn solid" type="submit">Sign in</button><button class="btn" type="button" id="signup">Create account</button><button class="btn link" type="button" id="reset">Forgot password</button></div>
+          <p class="note err" id="autherr" role="alert"></p></form>`}</section>
+    <section><h3>Workout</h3><div class="frow"><button class="btn" id="import">Copy routine from The System</button></div>
+      <p class="note">Replaces Ledger’s Monday, Wednesday and Friday routines with the ones saved in The System.</p></section>
+    <p class="note fine"><a href="../">Open The System</a></p></div>`;
+}
+function bindSettings(p) {
+  p.querySelectorAll('[data-theme-pick]').forEach(b => b.onclick = () => { S.settings.theme = b.dataset.themePick; setMain('settings'); render(); });
+  p.querySelectorAll('[data-layout-pick]').forEach(b => b.onclick = () => { S.settings.layout = b.dataset.layoutPick; setMain('settings'); render(); });
+  p.querySelectorAll('[data-check-pick]').forEach(b => b.onclick = () => { S.settings.check = b.dataset.checkPick; setMain('settings'); render(); });
+  const rs = $('rest-set');
+  rs.onfocus = () => rs.select();
+  rs.onkeydown = e => { if (e.key === 'Enter') rs.blur(); };
+  rs.onchange = () => { const v = parseRest(rs.value); if (v) { S.settings.restSec = v; setMain('settings'); } rs.value = mmss(restLen()); };
+  const err = m => { const e = $('autherr'); if (e) e.textContent = m; };
+  const nice = e => ({ 'auth/invalid-credential': 'Wrong email or password.', 'auth/wrong-password': 'Wrong email or password.', 'auth/user-not-found': 'No account with that email.',
+    'auth/email-already-in-use': 'That email already has an account. Sign in instead.', 'auth/weak-password': 'Use at least 6 characters.', 'auth/invalid-email': 'That email doesn’t look right.',
+    'auth/network-request-failed': 'No connection.', 'auth/too-many-requests': 'Too many tries. Wait a minute.' })[e && e.code] || 'Something went wrong.';
+  const form = $('auth');
+  if (form) {
+    form.onsubmit = e => { e.preventDefault(); err(''); Sync.signIn($('em').value.trim(), $('pw').value).catch(x => err(nice(x))); };
+    $('signup').onclick = () => { if (!form.reportValidity()) return; err(''); Sync.signUp($('em').value.trim(), $('pw').value).catch(x => err(nice(x))); };
+    $('reset').onclick = () => { const em = $('em').value.trim(); if (!em) return err('Type your email first.'); Sync.resetPassword(em).then(() => err('Reset link sent. Check your email.')).catch(x => err(nice(x))); };
+  }
+  const so = $('signout'); if (so) so.onclick = () => Sync.signOutUser();
+  $('import').onclick = async () => {
+    let w = null;
+    try { const old = JSON.parse(localStorage.getItem(OLD_KEY)); w = old && old.workouts; } catch (e) { /* none */ }
+    if (!w) w = await Sync.oldWorkouts();
+    if (!w) return toast('No routine found in The System on this device or account.');
+    if (!confirm('Replace Ledger’s routines with the ones from The System?')) return;
+    S.workouts = withIds(w); setMain('workouts'); toast('Routine copied.'); renderPanel();
+  };
+}
+
+// ---------- events ----------
+function bindPanel() {
+  const p = $('panel');
+  p.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { view.tab = b.dataset.tab; view.woEdit = false; document.body.dataset.tab = view.tab; renderPanel(); });
+  if (view.tab === 'workout') return bindWorkout(p);
+  if (view.tab === 'settings') return bindSettings(p);
+  const form = $('addform'), inp = $('addin');
+  form.onsubmit = e => {
+    e.preventDefault();
+    const v = taskCase(inp.value); if (!v) return;
+    const id = uid();
+    setTask(id, { t: v, done: false, at: Date.now() });
+    inp.value = '';
+    refresh();
+    $('addin').focus();
+    const row = document.querySelector(`.task[data-id="${id}"]`); if (row) row.classList.add('new');
+  };
+  p.querySelectorAll('.task').forEach(row => {
+    const id = row.dataset.id;
+    row.querySelector('.ck').onclick = () => toggle(id);
+    const t = row.querySelector('.t');
+    // a click on the words ticks the task; a double-click edits it instead
+    if (t) {
+      let wait = null;
+      t.onclick = () => { clearTimeout(wait); wait = setTimeout(() => toggle(id), 230); };
+      t.ondblclick = e => { e.preventDefault(); clearTimeout(wait); view.editing = id; refresh(); };
+    }
+    row.querySelector('.del').onclick = () => remove(id);
+    const ed = row.querySelector('.t-edit');
+    if (ed) {
+      ed.focus(); ed.setSelectionRange(ed.value.length, ed.value.length);
+      const done = keep => { if (view.editing !== id) return; view.editing = null; const v = taskCase(ed.value); const x = dayOf(today()).tasks[id]; if (keep && v && x && v !== x.t) setTask(id, Object.assign({}, x, { t: v })); refresh(); };
+      ed.onkeydown = e => { if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); };
+      ed.onblur = () => done(true);
+    }
+  });
+}
+// re-render while keeping the add box's text and focus
+function refresh() {
+  const inp = $('addin'), had = inp && document.activeElement === inp, val = inp ? inp.value : '';
+  render();
+  const n = $('addin'); if (n) { n.value = val; if (had) n.focus(); }
+}
+function toggle(id) {
+  const x = dayOf(today()).tasks[id]; if (!x) return;
+  setTask(id, Object.assign({}, x, { done: !x.done }));
+  refresh();
+  if (!x.done) pop(document.querySelector(`.task[data-id="${id}"] .ck`));
+}
+function remove(id) {
+  const x = dayOf(today()).tasks[id]; if (!x) return;
+  setTask(id, null); refresh();
+  toast(`Removed “${x.t}”`, () => { setTask(id, x); refresh(); });
+}
+function pop(el) { if (!el) return; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+
+let toastTimer = null;
+function toast(msg, undo, label = 'Undo') {
+  let el = $('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.innerHTML = `<span>${esc(msg)}</span>${undo ? `<button>${label}</button>` : ''}`;
+  if (undo) el.querySelector('button').onclick = () => { undo(); el.classList.remove('show'); };
+  el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 4200);
+}
+
+// live clocks in the theme art (aero gadget, cyber timestamp)
+function tickClocks() {
+  const n = new Date(), h = n.getHours(), m = n.getMinutes(), s = n.getSeconds();
+  document.querySelectorAll('[data-clock]').forEach(el => {
+    const f = el.dataset.clock;
+    el.textContent = f === 'hms' ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(h)}:${pad(m)}`;
+  });
+  const set = (sel, deg) => document.querySelectorAll(sel).forEach(el => el.setAttribute('transform', `rotate(${deg} 50 50)`));
+  set('.hand-h', (h % 12) * 30 + m / 2); set('.hand-m', m * 6 + s / 10); set('.hand-s', s * 6);
+}
+let lastDay = today();
+setInterval(() => {
+  tickClocks();
+  if (today() !== lastDay) { lastDay = today(); view.editing = null; Sync.watchDay(lastDay); render(); }
+}, 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && today() !== lastDay) { lastDay = today(); Sync.watchDay(lastDay); render(); } });
+
+// ---------- sync hooks ----------
+const focusBusy = () => { const a = document.activeElement; return a && a.closest && a.closest('.wo-edit, .settings, .t-edit'); };
+Sync.initSync({
+  getState: () => S,
+  today,
+  adoptWorkouts: w => { S.workouts = withIds(w); S.woSource = 'system'; save(); return S.workouts; },
+  onMain: data => {
+    if (data.settings) S.settings = Object.assign({}, SETTINGS, data.settings);
+    if (data.workouts) S.workouts = withIds(data.workouts);
+    save(); if (!focusBusy()) refresh();
+  },
+  onDay: (d, data) => {
+    S.days[d] = { tasks: data.tasks || {}, wo: data.wo || {} };
+    save(); if (!focusBusy()) refresh();
+  },
+  onAttached: u => { S.owner = u; S.dirty = { main: false, days: {} }; save(); },
+  onStatus: () => { if (view.tab === 'settings' && !focusBusy()) renderPanel(); },
+  onError: () => {}
+});
+
+render();
+if (matchMedia('(min-width: 861px)').matches && view.tab === 'tasks') { const a = $('addin'); if (a) a.focus({ preventScroll: true }); }
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  const had = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    const offer = w => toast('A new version of Ledger is ready.', () => w.postMessage('skip'), 'Reload');
+    if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+    reg.addEventListener('updatefound', () => { const w = reg.installing; w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offer(w); }); });
+  }).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && !reloaded) { reloaded = true; location.reload(); } });
+}
