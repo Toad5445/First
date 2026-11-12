@@ -9,6 +9,12 @@ a{color:inherit}
 svg{display:block}
 #art{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
 #art>*{position:absolute}
+/* Installed on a desktop, Ledger draws under the window's title bar (Window Controls Overlay): the theme's
+   own background runs right up behind the minimise / close buttons. This strip is the part you drag. */
+.titlebar-drag{position:fixed;z-index:40;left:env(titlebar-area-x,0);top:env(titlebar-area-y,0);width:env(titlebar-area-width,0);height:env(titlebar-area-height,0);-webkit-app-region:drag;app-region:drag}
+@media (display-mode:window-controls-overlay){
+  body[data-theme=cyber] .reg{display:none}
+}
 
 /* ---------- layout ---------- */
 .stage{position:relative;z-index:1;display:grid;height:100vh;height:100dvh;gap:var(--gap,40px);padding:var(--pad,36px 44px)}
@@ -370,7 +376,7 @@ body[data-theme=cyber]{--ink:#d9dbe6;--dim:#5d6073;--cold:#8a95ff;--accent:#d9db
 .cy-smear{left:0;right:0;top:44%;height:110px;filter:blur(18px);opacity:.22;transform:skewY(-4deg);background:linear-gradient(90deg,transparent,rgba(220,225,255,.9) 30%,rgba(140,150,255,.6) 55%,transparent 80%)}
 .cy-chain{top:-9vh;height:118vh;width:auto;left:calc((100vw - 520px) * .45 - 24vh)}
 body[data-layout=left] .cy-chain{left:calc(520px + (100vw - 520px) * .5 - 24vh)}
-body[data-layout=center] .cy-chain{left:calc(100vw - 32vh)}
+body[data-layout=center] .cy-chain{left:calc(100vw - 32vh - 80px)}
 body[data-layout=left] .cy-light{left:34%}
 .cy-cols{inset:0;display:grid;grid-template-columns:repeat(4,1fr)}
 .cy-cols i{border-right:1px solid rgba(217,219,230,.035)}
