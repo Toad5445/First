@@ -168,7 +168,7 @@ body[data-layout=center] .stage{grid-template-columns:minmax(0,1fr) var(--pw) mi
 .sw-aero b{z-index:1;font:900 22px/1 'Unbounded';letter-spacing:-.06em;padding-bottom:.2em;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,.3) 46%,rgba(255,255,255,0) 47%),linear-gradient(180deg,#5ad0ff,#1677f2 48%,#0a4fcf 60%,#7fe8ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 #fff) drop-shadow(0 3px 5px rgba(0,70,190,.4));bottom:8px}
 .sw-cyber{background:#030305}
 .sw-cyber i{position:absolute;inset:20px -10px 10px;filter:blur(10px);background:radial-gradient(50% 50% at 40% 50%,rgba(120,130,255,.9),transparent 70%)}
-.sw-cyber b{font:900 22px/1 'Archivo';font-stretch:125%;background:linear-gradient(180deg,#fff,#b9bed6 30%,#3a3d55 50%,#9aa0c4 66%,#e9ebf7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sw-cyber b{font:900 22px/1 'Archivo';font-stretch:125%;filter:drop-shadow(0 0 6px rgba(160,100,255,.6));background:linear-gradient(180deg,#fff,#c7c9ff 33%,#14122a 49%,#05050c 52%,#b04bdc 66%,#ff6fd8 76%,#7cecff 92%,#e9fbff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sw-dark{background:radial-gradient(80% 90% at 20% 100%,rgba(200,120,50,.25),transparent 70%),#060505}
 .sw-dark svg{position:absolute;right:8px;top:6px;width:62px;height:62px}
 .sw-dark svg *{fill:none;stroke:#b8955a;stroke-width:1.4}
@@ -333,8 +333,14 @@ body[data-theme=cyber] .brand{padding:0 48px 40px}
 body[data-theme=cyber] .side{padding:40px 48px 0}
 .cy-brand{position:absolute;inset:0 48px 40px;display:flex;flex-direction:column;justify-content:flex-end}
 .cy-brand .word{font:900 min(150px,19.5cqi)/.8 'Archivo',sans-serif;font-stretch:125%;letter-spacing:-.02em;
-  background:linear-gradient(180deg,#ffffff 0%,#b9bed6 30%,#3a3d55 50%,#9aa0c4 66%,#e9ebf7 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 0 30px rgba(120,130,255,.25))}
+  padding:.04em 0 .06em;
+  /* iridescent chrome, lit like the chain: icy top, a hard black horizon, neon reflections below */
+  background:
+    linear-gradient(90deg,rgba(40,230,255,.55),rgba(40,230,255,0) 28%,rgba(170,90,255,0) 55%,rgba(255,60,200,.5) 100%),
+    linear-gradient(180deg,#ffffff 0%,#f1f0ff 16%,#c7c9ff 33%,#8a86e8 45%,#14122a 49.5%,#05050c 52%,#2a1f5c 57%,#b04bdc 65%,#ff6fd8 72%,#ffc4f0 78%,#5fe4ff 86%,#e9fbff 94%);
+  background-blend-mode:color-dodge,normal;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 -1px 0 rgba(255,255,255,.55)) drop-shadow(0 0 1px rgba(200,190,255,.9)) drop-shadow(0 0 14px rgba(140,100,255,.55)) drop-shadow(0 0 42px rgba(255,70,210,.3)) drop-shadow(0 18px 40px rgba(60,200,255,.18))}
 .cy-brand .tag{display:flex;gap:28px;margin-top:22px;align-items:flex-end}
 .cy-brand .tag p{max-width:260px;font-size:12px;line-height:1.55;color:#8b8ea3}
 .pill{flex:none;border:1px solid var(--ink);border-radius:99px;padding:9px 20px;font:400 11px 'JetBrains Mono';letter-spacing:.24em}
@@ -387,7 +393,10 @@ body[data-theme=cyber] .settings{padding-top:22px}
 /* center: the word runs down the left edge */
 body[data-theme=cyber][data-layout=center] .brand{padding:40px 0 40px 40px}
 body[data-theme=cyber][data-layout=center] .cy-brand{inset:40px 24px 40px 40px;flex-direction:row;align-items:flex-end;justify-content:space-between;gap:24px}
-body[data-theme=cyber][data-layout=center] .cy-brand .word{writing-mode:vertical-rl;transform:rotate(180deg);font-size:min(16.5dvh,150px);line-height:.82}
+body[data-theme=cyber][data-layout=center] .cy-brand .word{writing-mode:vertical-rl;transform:rotate(180deg);font-size:min(16.5dvh,150px);line-height:.82;padding:0 .06em 0 .04em;
+  background:linear-gradient(180deg,rgba(40,230,255,.55),rgba(40,230,255,0) 28%,rgba(170,90,255,0) 55%,rgba(255,60,200,.5) 100%),
+    linear-gradient(270deg,#ffffff 0%,#f1f0ff 16%,#c7c9ff 33%,#8a86e8 45%,#14122a 49.5%,#05050c 52%,#2a1f5c 57%,#b04bdc 65%,#ff6fd8 72%,#ffc4f0 78%,#5fe4ff 86%,#e9fbff 94%);
+  background-blend-mode:color-dodge,normal;-webkit-background-clip:text;background-clip:text}
 body[data-theme=cyber][data-layout=center] .cy-brand .tag{flex-direction:column;align-items:flex-end;text-align:right;gap:14px;margin:0}
 body[data-theme=cyber][data-layout=center] .side{padding:40px 40px 40px 32px}
 body[data-theme=cyber][data-layout=center] .cy-side{flex-direction:column;justify-content:space-between;height:100%}
@@ -603,6 +612,10 @@ body[data-theme=light] .theme-card .tc-name,body[data-theme=light] .seg-opts but
   body[data-theme=cyber] .brand{padding:0}
   body[data-theme=cyber] .cy-brand{position:relative;inset:auto;padding:24px 4px 26px}
   body[data-theme=cyber] .cy-brand .word,body[data-theme=cyber][data-layout=center] .cy-brand .word{writing-mode:horizontal-tb;transform:none;font-size:15.6vw}
+  body[data-theme=cyber][data-layout=center] .cy-brand .word{padding:.04em 0 .06em;
+    background:linear-gradient(90deg,rgba(40,230,255,.55),rgba(40,230,255,0) 28%,rgba(170,90,255,0) 55%,rgba(255,60,200,.5) 100%),
+      linear-gradient(180deg,#ffffff 0%,#f1f0ff 16%,#c7c9ff 33%,#8a86e8 45%,#14122a 49.5%,#05050c 52%,#2a1f5c 57%,#b04bdc 65%,#ff6fd8 72%,#ffc4f0 78%,#5fe4ff 86%,#e9fbff 94%);
+    -webkit-background-clip:text;background-clip:text}
   body[data-theme=cyber][data-layout=center] .cy-brand{flex-direction:column;align-items:flex-start}
   body[data-theme=cyber] .cy-brand .tag{display:none}
   body[data-theme=cyber][data-layout=left] .cy-brand{align-items:flex-start;text-align:left}
