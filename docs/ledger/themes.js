@@ -72,11 +72,11 @@ const aeroClock = () => `<svg viewBox="0 0 100 100" class="ae-clock" aria-hidden
   <path d="M10 46 A40 40 0 0 1 90 46 Q50 34 10 46Z" fill="url(#aegls)" opacity=".75"/></svg>`;
 
 const aero = {
-  name: 'Aero', color: '#2164f5', check: 'gel',
+  name: 'Aero', color: '#2164f5', edge: '#1f8a2a', check: 'gel',
   tabNames: ['Tasks', 'Workout', 'History', '<svg viewBox="0 0 24 24" class="gear" aria-label="Settings"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.7.1-1.3-.1-1.3 2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-2.2-1.3L15.4 2.6h-4l-.4 2.7a8 8 0 0 0-2.2 1.3l-2.5-1-2 3.5L6.4 10.7l-.1 1.3.1 1.3-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 2.2 1.3l.4 2.7h4l.4-2.7a8 8 0 0 0 2.2-1.3l2.5 1 2-3.5Z"/></svg>'],
   placeholder: 'Add a task…', addLabel: 'Add', empty: 'Nothing on the list yet. Type above to add your first task.',
   num: i => String(i).padStart(2, '0'),
-  count: c => c.total ? `<b>${c.done}</b> / ${c.total} done` : 'nothing yet',
+  count: c => c.total ? `<b>${c.done}</b> / ${c.total} done` : '0 done',
   head: c => `<header class="ph">
       <div class="titlebar"><span class="orbs" aria-hidden="true"><i></i><i></i><i></i></span><span class="tb-title">Ledger</span><span class="tb-path">${tabTitle(c, 'today', 'workout', 'settings', 'history')}</span></div>
       <div class="ph-row"><h2>${tabTitle(c, 'Today', 'Workout', 'Settings', 'History')}</h2><div class="d">${c.dow.toLowerCase()}<br>${c.date} ${MON3(c.month).toLowerCase()} ${c.year}</div></div>
@@ -99,7 +99,7 @@ const aero = {
 // a ray-traced chrome chain (tools/chain_render.py)
 const chain = () => '<img class="cy-chain" src="art/chain.webp" alt="" decoding="async">';
 const cyber = {
-  name: 'Cybercore', color: '#070709', check: 'xbox',
+  name: 'Cybercore', color: '#070709', edge: '#030305', check: 'xbox',
   tabNames: ['Tasks', 'Workout', 'Archive', 'Settings'],
   placeholder: 'Add a task', addLabel: 'Enter ↵', addIcon: '<span class="plus" aria-hidden="true">+</span>',
   empty: 'No entries. The day is open.',
@@ -167,7 +167,7 @@ function darkArt() {
   return `<div class="dk-void"></div><div class="dk-candle"></div><div class="dk-candle c2"></div><div class="dk-motes" aria-hidden="true">${motes}</div><div class="dk-noise"></div>`;
 }
 const dark = {
-  name: 'Dark Academia', color: '#0e0905', check: 'seal',
+  name: 'Dark Academia', color: '#0e0905', edge: '#030202', check: 'seal',
   tabNames: ['Tasks', 'Exercises', 'Records', 'Settings'],
   placeholder: 'Inscribe a task…', addLabel: 'Add', empty: 'The page is blank. Inscribe the day’s work above.',
   num: i => roman(i),
@@ -244,7 +244,7 @@ function fresco(id, seed, warm) {
 }
 const LEDE = '<div class="lede"><p>Each morning the page is clean. Set down what the day asks of you, plainly and in order, and leave nothing to memory.</p><p>As the hours pass, mark each task as it is done. What remains at nightfall is simply let go, and tomorrow begins anew.</p></div>';
 const light = {
-  name: 'Light Academia', color: '#ede4d3', check: 'tick',
+  name: 'Light Academia', color: '#ede4d3', edge: '#e9dfcc', check: 'tick',
   tabNames: ['Tasks', 'Workout', 'Records', 'Settings'],
   placeholder: 'Add a task…', addLabel: 'Add', empty: 'A clean page. Begin whenever you are ready.',
   num: i => roman(i),

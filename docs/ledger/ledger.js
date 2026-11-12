@@ -143,6 +143,8 @@ function render() {
   $('side').innerHTML = t.side(c);
   renderPanel(c);
   const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = t.color;
+  // what shows behind the art, e.g. in the iPhone home-bar strip, is the colour of the theme's bottom edge
+  document.documentElement.style.backgroundColor = t.edge;
   tickClocks();
 }
 
