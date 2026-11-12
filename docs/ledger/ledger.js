@@ -252,11 +252,12 @@ function wireControls(scr, iframe) {
   // So the player is drawn larger than the frame (and scaled down to fit) by just enough for the chosen quality.
   const QH = { highres: 4320, hd2160: 2160, hd1440: 1440, hd1080: 1080, hd720: 720, large: 480, medium: 360, small: 240, tiny: 144 };
   const qName = h => h >= 2160 ? '4K' : h + 'p';
-  const qbox = menu.querySelector('.vqs'), qnow = menu.querySelector('.vqnow');
+  const qbox = menu.querySelector('.vqs'), qnow = menu.querySelector('.vqnow'), qbadge = scr.querySelector('.vqb');
   const applyQ = () => {
     const want = video.q && video.q !== 'auto' ? +video.q : 0;
-    const h = scr.clientHeight * (devicePixelRatio || 1);
-    const k = want && h ? Math.min(8, Math.max(1, want / h)) : 1;
+    const css = scr.clientHeight, h = css * (devicePixelRatio || 1);
+    // whole-number factors only: odd ones (6.28x) can leave a faint seam on some graphics cards
+    const k = want && h ? Math.min(8, Math.max(1, Math.ceil(want / h - .05))) : 1;
     scr.style.setProperty('--vs', k.toFixed(3));
     qbox.querySelectorAll('[data-q]').forEach(b => b.classList.toggle('on', b.dataset.q === String(video.q || 'auto')));
   };
@@ -299,6 +300,7 @@ function wireControls(scr, iframe) {
     bMute.innerHTML = yt.isMuted && yt.isMuted() ? VI.muted : VI.vol;
     const r = yt.getPlaybackRate ? yt.getPlaybackRate() : 1;
     const cq = QH[yt.getPlaybackQuality && yt.getPlaybackQuality()]; qnow.textContent = cq ? `· now ${qName(cq)}` : '';
+    qbadge.textContent = cq ? qName(cq) : ''; qbadge.classList.toggle('hd', cq >= 720);
     listQ();
     menu.querySelectorAll('[data-rate]').forEach(b => b.classList.toggle('on', +b.dataset.rate === r));
   }
@@ -344,9 +346,9 @@ function placeVideo(autoplay) {
         allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
         ${v.id ? `<img class="vposter" alt="" src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'">` : ''}
         <div class="vhit" aria-hidden="true"></div>
-        <span class="vbig" aria-hidden="true">${VI.play}</span>
+        <span class="vbig" aria-hidden="true">${VI.play}</span><span class="vfrost" aria-hidden="true"></span>
         <div class="vctl"><button class="vplay" aria-label="Play">${VI.play}</button>
-          <span class="vtime">0:00 / 0:00</span>
+          <span class="vtime">0:00 / 0:00</span><span class="vqb" title="Quality YouTube is streaming"></span>
           <div class="vprog" role="slider" aria-label="Seek"><i class="vrail"></i><i class="vbuf"></i><i class="vfill"></i><i class="vknob"></i></div>
           <button class="vmute" aria-label="Mute">${VI.vol}</button>
           <button class="vrate" aria-label="Settings: quality and speed"><svg viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.7.1-1.3-.1-1.3 2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-2.2-1.3L15.4 2.6h-4l-.4 2.7a8 8 0 0 0-2.2 1.3l-2.5-1-2 3.5L6.4 10.7l-.1 1.3.1 1.3-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 2.2 1.3l.4 2.7h4l.4-2.7a8 8 0 0 0 2.2-1.3l2.5 1 2-3.5Z"/></svg></button>
