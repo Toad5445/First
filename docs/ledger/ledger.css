@@ -266,7 +266,7 @@ body[data-theme=aero]{--ink:#14183d;--dim:#6670a0;--accent:#1f7bff;--on-accent:#
     radial-gradient(circle,rgba(160,230,255,0) 56%,rgba(255,255,255,.45) 70%,rgba(140,215,255,.5) 86%,rgba(255,255,255,.85) 100%);
   box-shadow:0 6px 18px rgba(40,90,200,.12);animation:aebob var(--d) ease-in-out var(--dl) infinite alternate}
 @keyframes aebob{to{transform:translate3d(6px,var(--dy),0)}}
-body[data-theme=aero] .stage{grid-template-rows:auto minmax(0,1fr)}
+body[data-theme=aero]:not([data-layout=center]) .stage{grid-template-rows:auto minmax(0,1fr)}
 .ae-brand{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end}
 .ae-brand .word{position:relative;font:900 min(168px,23cqi)/.82 'Unbounded',sans-serif;letter-spacing:-.06em;padding:.06em .04em .3em;margin:0 -.04em -.24em;
   /* Frutiger Aero gel lettering: a glossy white cap that stops in a crisp line across the middle,
@@ -299,7 +299,7 @@ body[data-theme=aero] .stage{grid-template-rows:auto minmax(0,1fr)}
 .orb::before{content:"";position:absolute;left:14%;right:14%;top:5%;height:44%;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.05))}
 .orb b{position:relative;font:800 34px/1 'Unbounded';text-shadow:0 2px 3px rgba(0,30,110,.45)}
 .orb span{position:relative;font:600 10px 'Unbounded';letter-spacing:.04em;opacity:.95}
-body[data-theme=aero] .panel{align-self:center;max-height:100%;border-radius:22px;
+body[data-theme=aero] .panel{align-self:center;height:min(760px,100%);border-radius:22px;
   background:linear-gradient(180deg,rgba(255,255,255,.8),rgba(246,251,255,.62));border:1px solid rgba(255,255,255,.95);
   box-shadow:0 34px 80px rgba(20,60,170,.3),0 0 0 1px rgba(60,110,200,.14),inset 0 1px 0 #fff;-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5)}
 body[data-theme=aero] .ph{position:relative}
@@ -496,7 +496,7 @@ body[data-theme=dark]{--ink:#ddd3c0;--dim:#857c6c;--gold:#b8955a;--accent:#b8955
 .dk-side blockquote{font:italic 400 18px 'Cormorant Garamond';color:#8f8676}
 .dk-side blockquote b{display:block;font:400 9px 'Cinzel';font-style:normal;letter-spacing:.45em;color:#6b5f45;margin-top:4px}
 .dk-side .folio{margin-left:auto;font:400 11px 'Cinzel';letter-spacing:.3em;color:#5d574c}
-body[data-theme=dark] .panel{align-self:center;max-height:100%;padding:52px 60px 34px;
+body[data-theme=dark] .panel{align-self:center;height:min(820px,100%);padding:52px 60px 34px;
   background:linear-gradient(180deg,rgba(14,12,10,.9),rgba(8,7,6,.94));border:1px solid rgba(184,149,90,.3);
   box-shadow:inset 0 0 0 7px rgba(8,7,6,.95),inset 0 0 0 8px rgba(184,149,90,.14),0 40px 80px rgba(0,0,0,.85),0 0 120px rgba(200,120,50,.05);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .corner{position:absolute;width:46px;height:46px;pointer-events:none}
@@ -629,7 +629,7 @@ body[data-theme=light] .theme-card .tc-name,body[data-theme=light] .seg-opts but
     padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 8px)}
   .side{display:none!important}
   .brand{flex:none;order:0}
-  .panel{order:1;flex:1;max-height:none!important;align-self:stretch!important}
+  .panel{order:1;flex:1;max-height:none!important;height:auto!important;align-self:stretch!important}
   .pbody{overflow:visible}
   .pfoot{position:sticky;bottom:0;z-index:5}
   .del{opacity:.4}
