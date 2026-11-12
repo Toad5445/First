@@ -809,14 +809,124 @@ body[data-theme=light] .vfrost{background:radial-gradient(circle,rgb(244,238,226
 .vknob{width:12px;height:12px!important;margin:-6px 0 0 -6px!important;border-radius:50%;background:#fff;transform:scale(0);transition:transform .15s}
 .vprog:hover .vknob,.vprog.drag .vknob{transform:scale(1)}
 .vprog:hover .vrail,.vprog:hover .vbuf,.vprog:hover .vfill{height:6px;margin-top:-3px}
+.vvol{flex:none;display:flex;align-items:center}
+.vvbar{position:relative;width:0;height:22px;cursor:pointer;touch-action:none;overflow:hidden;opacity:0;transition:width .22s ease,opacity .18s,margin .22s;margin:0}
+.vvol:hover .vvbar,.vvol.open .vvbar,.vvbar:focus-visible{width:72px;opacity:1;margin:0 8px 0 4px;overflow:visible}
+.vvbar i{position:absolute;left:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;pointer-events:none}
+.vvrail{right:0;background:rgba(255,255,255,.25)}
+.vvfill{width:100%;background:#fff}
+.vvknob{left:100%;width:12px;height:12px!important;margin:-6px 0 0 -6px!important;border-radius:50%;background:#fff}
+body[data-theme=aero] .vvrail{background:rgba(30,70,170,.16);box-shadow:inset 0 1px 1px rgba(0,30,100,.25)}
+body[data-theme=aero] .vvfill{background:linear-gradient(180deg,#9ff0ff,#2fb4ff 50%,#1173e6 51%,#3aa0ff)}
+body[data-theme=aero] .vvknob{background:radial-gradient(circle at 40% 30%,#fff,#d8ecff 60%,#9ec4f0);box-shadow:0 1px 3px rgba(0,30,110,.45),inset 0 0 0 1px rgba(40,90,190,.4)}
+body[data-theme=cyber] .vvbar i{height:2px;margin-top:-1px;border-radius:0}
+body[data-theme=cyber] .vvrail{background:rgba(217,219,230,.16)}
+body[data-theme=cyber] .vvfill{background:#8a95ff;box-shadow:0 0 8px #8a95ff}
+body[data-theme=cyber] .vvknob{width:8px!important;height:8px!important;margin:-4px 0 0 -4px!important;border-radius:0;box-shadow:0 0 8px #8a95ff}
+body[data-theme=dark] .vvbar i{height:1.5px;margin-top:-.75px}
+body[data-theme=dark] .vvrail{background:rgba(184,149,90,.3)}
+body[data-theme=dark] .vvfill{background:linear-gradient(90deg,#8a6430,#e2c27a)}
+body[data-theme=dark] .vvknob{width:9px!important;height:9px!important;margin:-4.5px 0 0 -4.5px!important;border-radius:1px;background:#e2c27a;transform:rotate(45deg)}
+body[data-theme=light] .vvbar i{height:2px;margin-top:-1px}
+body[data-theme=light] .vvrail{background:rgba(251,243,226,.3)}
+body[data-theme=light] .vvfill{background:#e3c58c}
+body[data-theme=light] .vvknob{background:#fbf3e2;box-shadow:0 0 0 2px #c9a35f}
 .vprog .vtip{position:absolute;left:0;bottom:calc(100% + 6px);top:auto;height:auto;margin:0;transform:translateX(-50%) translateY(4px);padding:4px 7px;border-radius:6px;
   font:600 11px/1 var(--f-ui);font-variant-numeric:tabular-nums;white-space:nowrap;color:#fff;background:rgba(10,12,20,.88);box-shadow:0 3px 10px rgba(0,0,0,.3);
   opacity:0;transition:opacity .15s,transform .15s;pointer-events:none}
 .vprog.tipping .vtip{opacity:1;transform:translateX(-50%)}
-body[data-theme=aero] .vprog .vtip{color:#17306f;background:linear-gradient(180deg,#fff,#e1eeff);border:1px solid #fff;box-shadow:0 4px 12px rgba(10,40,120,.3);font-family:'Nunito Sans';font-weight:700}
-body[data-theme=cyber] .vprog .vtip{border-radius:0;background:rgba(3,3,6,.95);border:1px solid rgba(138,149,255,.5);font:400 10.5px 'JetBrains Mono';color:#d9dbe6;box-shadow:0 0 10px rgba(138,149,255,.3)}
-body[data-theme=dark] .vprog .vtip{border-radius:0;background:rgba(10,8,6,.95);border:1px solid rgba(184,149,90,.5);font:italic 500 14px 'Cormorant Garamond';color:#e3cf9f}
-body[data-theme=light] .vprog .vtip{border-radius:2px;background:#fbf7ee;color:#3b2f24;font:italic 400 14px 'EB Garamond';box-shadow:0 4px 12px rgba(60,40,15,.3)}
+body[data-theme=aero] .vvol{flex:none;display:flex;align-items:center}
+.vvbar{position:relative;width:0;height:22px;cursor:pointer;touch-action:none;overflow:hidden;opacity:0;transition:width .22s ease,opacity .18s,margin .22s;margin:0}
+.vvol:hover .vvbar,.vvol.open .vvbar,.vvbar:focus-visible{width:72px;opacity:1;margin:0 8px 0 4px;overflow:visible}
+.vvbar i{position:absolute;left:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;pointer-events:none}
+.vvrail{right:0;background:rgba(255,255,255,.25)}
+.vvfill{width:100%;background:#fff}
+.vvknob{left:100%;width:12px;height:12px!important;margin:-6px 0 0 -6px!important;border-radius:50%;background:#fff}
+body[data-theme=aero] .vvrail{background:rgba(30,70,170,.16);box-shadow:inset 0 1px 1px rgba(0,30,100,.25)}
+body[data-theme=aero] .vvfill{background:linear-gradient(180deg,#9ff0ff,#2fb4ff 50%,#1173e6 51%,#3aa0ff)}
+body[data-theme=aero] .vvknob{background:radial-gradient(circle at 40% 30%,#fff,#d8ecff 60%,#9ec4f0);box-shadow:0 1px 3px rgba(0,30,110,.45),inset 0 0 0 1px rgba(40,90,190,.4)}
+body[data-theme=cyber] .vvbar i{height:2px;margin-top:-1px;border-radius:0}
+body[data-theme=cyber] .vvrail{background:rgba(217,219,230,.16)}
+body[data-theme=cyber] .vvfill{background:#8a95ff;box-shadow:0 0 8px #8a95ff}
+body[data-theme=cyber] .vvknob{width:8px!important;height:8px!important;margin:-4px 0 0 -4px!important;border-radius:0;box-shadow:0 0 8px #8a95ff}
+body[data-theme=dark] .vvbar i{height:1.5px;margin-top:-.75px}
+body[data-theme=dark] .vvrail{background:rgba(184,149,90,.3)}
+body[data-theme=dark] .vvfill{background:linear-gradient(90deg,#8a6430,#e2c27a)}
+body[data-theme=dark] .vvknob{width:9px!important;height:9px!important;margin:-4.5px 0 0 -4.5px!important;border-radius:1px;background:#e2c27a;transform:rotate(45deg)}
+body[data-theme=light] .vvbar i{height:2px;margin-top:-1px}
+body[data-theme=light] .vvrail{background:rgba(251,243,226,.3)}
+body[data-theme=light] .vvfill{background:#e3c58c}
+body[data-theme=light] .vvknob{background:#fbf3e2;box-shadow:0 0 0 2px #c9a35f}
+.vprog .vtip{color:#17306f;background:linear-gradient(180deg,#fff,#e1eeff);border:1px solid #fff;box-shadow:0 4px 12px rgba(10,40,120,.3);font-family:'Nunito Sans';font-weight:700}
+body[data-theme=cyber] .vvol{flex:none;display:flex;align-items:center}
+.vvbar{position:relative;width:0;height:22px;cursor:pointer;touch-action:none;overflow:hidden;opacity:0;transition:width .22s ease,opacity .18s,margin .22s;margin:0}
+.vvol:hover .vvbar,.vvol.open .vvbar,.vvbar:focus-visible{width:72px;opacity:1;margin:0 8px 0 4px;overflow:visible}
+.vvbar i{position:absolute;left:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;pointer-events:none}
+.vvrail{right:0;background:rgba(255,255,255,.25)}
+.vvfill{width:100%;background:#fff}
+.vvknob{left:100%;width:12px;height:12px!important;margin:-6px 0 0 -6px!important;border-radius:50%;background:#fff}
+body[data-theme=aero] .vvrail{background:rgba(30,70,170,.16);box-shadow:inset 0 1px 1px rgba(0,30,100,.25)}
+body[data-theme=aero] .vvfill{background:linear-gradient(180deg,#9ff0ff,#2fb4ff 50%,#1173e6 51%,#3aa0ff)}
+body[data-theme=aero] .vvknob{background:radial-gradient(circle at 40% 30%,#fff,#d8ecff 60%,#9ec4f0);box-shadow:0 1px 3px rgba(0,30,110,.45),inset 0 0 0 1px rgba(40,90,190,.4)}
+body[data-theme=cyber] .vvbar i{height:2px;margin-top:-1px;border-radius:0}
+body[data-theme=cyber] .vvrail{background:rgba(217,219,230,.16)}
+body[data-theme=cyber] .vvfill{background:#8a95ff;box-shadow:0 0 8px #8a95ff}
+body[data-theme=cyber] .vvknob{width:8px!important;height:8px!important;margin:-4px 0 0 -4px!important;border-radius:0;box-shadow:0 0 8px #8a95ff}
+body[data-theme=dark] .vvbar i{height:1.5px;margin-top:-.75px}
+body[data-theme=dark] .vvrail{background:rgba(184,149,90,.3)}
+body[data-theme=dark] .vvfill{background:linear-gradient(90deg,#8a6430,#e2c27a)}
+body[data-theme=dark] .vvknob{width:9px!important;height:9px!important;margin:-4.5px 0 0 -4.5px!important;border-radius:1px;background:#e2c27a;transform:rotate(45deg)}
+body[data-theme=light] .vvbar i{height:2px;margin-top:-1px}
+body[data-theme=light] .vvrail{background:rgba(251,243,226,.3)}
+body[data-theme=light] .vvfill{background:#e3c58c}
+body[data-theme=light] .vvknob{background:#fbf3e2;box-shadow:0 0 0 2px #c9a35f}
+.vprog .vtip{border-radius:0;background:rgba(3,3,6,.95);border:1px solid rgba(138,149,255,.5);font:400 10.5px 'JetBrains Mono';color:#d9dbe6;box-shadow:0 0 10px rgba(138,149,255,.3)}
+body[data-theme=dark] .vvol{flex:none;display:flex;align-items:center}
+.vvbar{position:relative;width:0;height:22px;cursor:pointer;touch-action:none;overflow:hidden;opacity:0;transition:width .22s ease,opacity .18s,margin .22s;margin:0}
+.vvol:hover .vvbar,.vvol.open .vvbar,.vvbar:focus-visible{width:72px;opacity:1;margin:0 8px 0 4px;overflow:visible}
+.vvbar i{position:absolute;left:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;pointer-events:none}
+.vvrail{right:0;background:rgba(255,255,255,.25)}
+.vvfill{width:100%;background:#fff}
+.vvknob{left:100%;width:12px;height:12px!important;margin:-6px 0 0 -6px!important;border-radius:50%;background:#fff}
+body[data-theme=aero] .vvrail{background:rgba(30,70,170,.16);box-shadow:inset 0 1px 1px rgba(0,30,100,.25)}
+body[data-theme=aero] .vvfill{background:linear-gradient(180deg,#9ff0ff,#2fb4ff 50%,#1173e6 51%,#3aa0ff)}
+body[data-theme=aero] .vvknob{background:radial-gradient(circle at 40% 30%,#fff,#d8ecff 60%,#9ec4f0);box-shadow:0 1px 3px rgba(0,30,110,.45),inset 0 0 0 1px rgba(40,90,190,.4)}
+body[data-theme=cyber] .vvbar i{height:2px;margin-top:-1px;border-radius:0}
+body[data-theme=cyber] .vvrail{background:rgba(217,219,230,.16)}
+body[data-theme=cyber] .vvfill{background:#8a95ff;box-shadow:0 0 8px #8a95ff}
+body[data-theme=cyber] .vvknob{width:8px!important;height:8px!important;margin:-4px 0 0 -4px!important;border-radius:0;box-shadow:0 0 8px #8a95ff}
+body[data-theme=dark] .vvbar i{height:1.5px;margin-top:-.75px}
+body[data-theme=dark] .vvrail{background:rgba(184,149,90,.3)}
+body[data-theme=dark] .vvfill{background:linear-gradient(90deg,#8a6430,#e2c27a)}
+body[data-theme=dark] .vvknob{width:9px!important;height:9px!important;margin:-4.5px 0 0 -4.5px!important;border-radius:1px;background:#e2c27a;transform:rotate(45deg)}
+body[data-theme=light] .vvbar i{height:2px;margin-top:-1px}
+body[data-theme=light] .vvrail{background:rgba(251,243,226,.3)}
+body[data-theme=light] .vvfill{background:#e3c58c}
+body[data-theme=light] .vvknob{background:#fbf3e2;box-shadow:0 0 0 2px #c9a35f}
+.vprog .vtip{border-radius:0;background:rgba(10,8,6,.95);border:1px solid rgba(184,149,90,.5);font:italic 500 14px 'Cormorant Garamond';color:#e3cf9f}
+body[data-theme=light] .vvol{flex:none;display:flex;align-items:center}
+.vvbar{position:relative;width:0;height:22px;cursor:pointer;touch-action:none;overflow:hidden;opacity:0;transition:width .22s ease,opacity .18s,margin .22s;margin:0}
+.vvol:hover .vvbar,.vvol.open .vvbar,.vvbar:focus-visible{width:72px;opacity:1;margin:0 8px 0 4px;overflow:visible}
+.vvbar i{position:absolute;left:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;pointer-events:none}
+.vvrail{right:0;background:rgba(255,255,255,.25)}
+.vvfill{width:100%;background:#fff}
+.vvknob{left:100%;width:12px;height:12px!important;margin:-6px 0 0 -6px!important;border-radius:50%;background:#fff}
+body[data-theme=aero] .vvrail{background:rgba(30,70,170,.16);box-shadow:inset 0 1px 1px rgba(0,30,100,.25)}
+body[data-theme=aero] .vvfill{background:linear-gradient(180deg,#9ff0ff,#2fb4ff 50%,#1173e6 51%,#3aa0ff)}
+body[data-theme=aero] .vvknob{background:radial-gradient(circle at 40% 30%,#fff,#d8ecff 60%,#9ec4f0);box-shadow:0 1px 3px rgba(0,30,110,.45),inset 0 0 0 1px rgba(40,90,190,.4)}
+body[data-theme=cyber] .vvbar i{height:2px;margin-top:-1px;border-radius:0}
+body[data-theme=cyber] .vvrail{background:rgba(217,219,230,.16)}
+body[data-theme=cyber] .vvfill{background:#8a95ff;box-shadow:0 0 8px #8a95ff}
+body[data-theme=cyber] .vvknob{width:8px!important;height:8px!important;margin:-4px 0 0 -4px!important;border-radius:0;box-shadow:0 0 8px #8a95ff}
+body[data-theme=dark] .vvbar i{height:1.5px;margin-top:-.75px}
+body[data-theme=dark] .vvrail{background:rgba(184,149,90,.3)}
+body[data-theme=dark] .vvfill{background:linear-gradient(90deg,#8a6430,#e2c27a)}
+body[data-theme=dark] .vvknob{width:9px!important;height:9px!important;margin:-4.5px 0 0 -4.5px!important;border-radius:1px;background:#e2c27a;transform:rotate(45deg)}
+body[data-theme=light] .vvbar i{height:2px;margin-top:-1px}
+body[data-theme=light] .vvrail{background:rgba(251,243,226,.3)}
+body[data-theme=light] .vvfill{background:#e3c58c}
+body[data-theme=light] .vvknob{background:#fbf3e2;box-shadow:0 0 0 2px #c9a35f}
+.vprog .vtip{border-radius:2px;background:#fbf7ee;color:#3b2f24;font:italic 400 14px 'EB Garamond';box-shadow:0 4px 12px rgba(60,40,15,.3)}
 .vmenu{position:absolute;right:8px;bottom:46px;display:flex;flex-direction:column;padding:6px;border-radius:10px;background:rgba(15,15,20,.95);min-width:170px;max-height:calc(100% - 56px);overflow:auto}
 .vframe>.vmenu{z-index:10;max-height:none;bottom:58px;right:18px}
 body[data-theme=light] .vframe>.vmenu{bottom:84px}

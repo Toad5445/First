@@ -197,6 +197,7 @@ const VI = {
   play: '<svg viewBox="0 0 24 24"><path d="M7.5 5.8c0-1.3 1.4-2 2.4-1.3l9.3 6.2c.9.6.9 2 0 2.6l-9.3 6.2c-1 .7-2.4 0-2.4-1.3z"/></svg>',
   pause: '<svg viewBox="0 0 24 24"><rect x="6" y="4.5" width="4.2" height="15" rx="1.3"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.3"/></svg>',
   vol: '<svg viewBox="0 0 24 24"><path d="M3.5 9h4l5-4.5v15l-5-4.5h-4z"/><path class="ln" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/></svg>',
+  low: '<svg viewBox="0 0 24 24"><path d="M3.5 9h4l5-4.5v15l-5-4.5h-4z"/><path class="ln" d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>',
   muted: '<svg viewBox="0 0 24 24"><path d="M3.5 9h4l5-4.5v15l-5-4.5h-4z"/><path class="ln" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
   full: '<svg viewBox="0 0 24 24"><path class="ln" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>',
   exit: '<svg viewBox="0 0 24 24"><path class="ln" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>'
@@ -245,7 +246,29 @@ function wireControls(scr, iframe) {
   });
   hit.addEventListener('dblclick', () => bFull.click());
   bPlay.onclick = () => { toggle(); show(); };
-  bMute.onclick = () => { if (!yt) return; yt.isMuted() ? yt.unMute() : yt.mute(); setTimeout(paint, 60); show(); };
+  bMute.onclick = () => {
+    if (!yt) return;
+    if (yt.isMuted() || yt.getVolume() === 0) { yt.unMute(); if (yt.getVolume() === 0) yt.setVolume(video.vol || 60); }
+    else yt.mute();
+    setTimeout(paint, 60); show();
+  };
+  // volume slider: click or drag; remembered on this device
+  const vbar = scr.querySelector('.vvbar'), vfill = scr.querySelector('.vvfill'), vknob = scr.querySelector('.vvknob');
+  let vdrag = false;
+  const vAt = x => { const r = vbar.getBoundingClientRect(); return Math.round(Math.min(1, Math.max(0, (x - r.left) / r.width)) * 100); };
+  const setVol = v => {
+    if (!yt || !yt.setVolume) return;
+    yt.setVolume(v); if (v > 0) { if (yt.isMuted()) yt.unMute(); video.vol = v; videoSave(); } else yt.mute();
+    vfill.style.width = vknob.style.left = v + '%'; vbar.setAttribute('aria-valuenow', v); setTimeout(paint, 60);
+  };
+  vbar.addEventListener('pointerdown', e => { vdrag = true; vbar.setPointerCapture(e.pointerId); vbar.parentNode.classList.add('open'); setVol(vAt(e.clientX)); show(4000); });
+  vbar.addEventListener('pointermove', e => { if (vdrag) { setVol(vAt(e.clientX)); show(4000); } });
+  vbar.addEventListener('pointerup', () => { vdrag = false; vbar.parentNode.classList.remove('open'); });
+  vbar.addEventListener('keydown', e => {
+    const cur = yt && !yt.isMuted() ? yt.getVolume() : 0;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { setVol(Math.min(100, cur + 5)); e.preventDefault(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { setVol(Math.max(0, cur - 5)); e.preventDefault(); }
+  });
   bRate.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; show(4000); };
   menu.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => { if (yt) yt.setPlaybackRate(+b.dataset.rate); menu.hidden = true; setTimeout(paint, 80); show(); });
   // Quality: YouTube ignores quality requests from the page, but it picks quality from how big its player is.
@@ -312,7 +335,10 @@ function wireControls(scr, iframe) {
     const d = yt.getDuration() || 0, t = yt.getCurrentTime() || 0;
     if (!dragging && d) { fill.style.width = knob.style.left = (t / d * 100) + '%'; time.textContent = `${tfmt(t)} / ${tfmt(d)}`; }
     buf.style.width = ((yt.getVideoLoadedFraction && yt.getVideoLoadedFraction()) || 0) * 100 + '%';
-    bMute.innerHTML = yt.isMuted && yt.isMuted() ? VI.muted : VI.vol;
+    const muted = yt.isMuted && yt.isMuted(), vol = muted ? 0 : (yt.getVolume ? yt.getVolume() : 100);
+    bMute.innerHTML = vol === 0 ? VI.muted : vol < 50 ? VI.low : VI.vol;
+    bMute.setAttribute('aria-label', vol === 0 ? 'Unmute' : 'Mute');
+    if (!vdrag) { vfill.style.width = vknob.style.left = vol + '%'; vbar.setAttribute('aria-valuenow', vol); }
     const r = yt.getPlaybackRate ? yt.getPlaybackRate() : 1;
     const cq = QH[yt.getPlaybackQuality && yt.getPlaybackQuality()]; qnow.textContent = cq ? `· now ${qName(cq)}` : '';
     qbadge.textContent = cq ? qName(cq) : ''; qbadge.classList.toggle('is-hd', cq >= 720);
@@ -322,7 +348,7 @@ function wireControls(scr, iframe) {
   loadYtApi().then(YT => {
     if (!iframe.isConnected) return;
     yt = new YT.Player(iframe, { events: {
-      onReady: () => { scr.classList.add('ready'); paint(); },
+      onReady: () => { scr.classList.add('ready'); if (video.vol) yt.setVolume(video.vol); paint(); },
       onStateChange: e => {
         playing = e.data === 1 || e.data === 3;
         if (e.data === 1) scr.classList.remove('fresh');   // first play: the poster gives way to the video
@@ -370,7 +396,8 @@ function placeVideo(autoplay) {
         <div class="vctl"><button class="vplay" aria-label="Play">${VI.play}</button>
           <span class="vtime">0:00 / 0:00</span><span class="vqb" title="Quality YouTube is streaming"></span>
           <div class="vprog" role="slider" aria-label="Seek"><i class="vrail"></i><i class="vbuf"></i><i class="vfill"></i><i class="vknob"></i><span class="vtip" aria-hidden="true"></span></div>
-          <button class="vmute" aria-label="Mute">${VI.vol}</button>
+          <div class="vvol"><button class="vmute" aria-label="Mute">${VI.vol}</button>
+            <div class="vvbar" role="slider" aria-label="Volume" aria-valuemin="0" aria-valuemax="100" tabindex="0"><i class="vvrail"></i><i class="vvfill"></i><i class="vvknob"></i></div></div>
           <button class="vrate" aria-label="Settings: quality and speed"><svg viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.7.1-1.3-.1-1.3 2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-2.2-1.3L15.4 2.6h-4l-.4 2.7a8 8 0 0 0-2.2 1.3l-2.5-1-2 3.5L6.4 10.7l-.1 1.3.1 1.3-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 2.2 1.3l.4 2.7h4l.4-2.7a8 8 0 0 0 2.2-1.3l2.5 1 2-3.5Z"/></svg></button>
           <button class="vfull" aria-label="Full screen">${VI.full}</button>
           <div class="vmenu" hidden><div class="vmh">Quality <span class="vqnow"></span></div><div class="vqs"><button data-q="auto">Auto</button></div>
