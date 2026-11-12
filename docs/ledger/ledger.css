@@ -678,7 +678,6 @@ body[data-theme=aero] .vbar{position:relative;height:40px;padding:0 2px}
 body[data-theme=aero] .vlabel{font:700 12px 'Nunito Sans';color:#3a4a7a}
 body[data-theme=aero] .vclose{color:#fff;background:radial-gradient(circle at 50% 30%,#ffb3c4,#ff4f78 60%,#d02650);box-shadow:inset 0 -2px 3px rgba(0,0,0,.2),inset 0 2px 2px rgba(255,255,255,.7),0 1px 2px rgba(0,30,90,.25);width:22px;height:22px}
 body[data-theme=aero] .vscreen{border-radius:12px;box-shadow:0 0 0 1px rgba(0,40,120,.35),0 3px 10px rgba(0,40,120,.28)}
-body[data-theme=aero] .vscreen::after{content:"";position:absolute;inset:0;border-radius:12px;pointer-events:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px rgba(255,255,255,.18)}
 
 /* Cybercore: a monitored feed — hairline frame, corner brackets, a live dot */
 body[data-theme=cyber] .vframe{padding:8px 10px 10px;background:rgba(3,3,6,.72);border:1px solid rgba(217,219,230,.16);box-shadow:0 0 40px rgba(120,110,255,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
@@ -756,7 +755,7 @@ body.theater[data-theme=light][data-layout=center] .vframe{transform:rotate(-.5d
 .vscreen.fresh .vposter{opacity:1}
 .vbig{position:absolute;left:50%;top:50%;z-index:2;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;display:grid;place-items:center;pointer-events:none;
   opacity:0;transform:scale(.85);transition:opacity .25s,transform .25s;color:#fff;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-.vbig svg{width:30px;height:30px;fill:currentColor;margin-left:3px}
+.vbig svg{width:30px;height:30px;fill:currentColor}
 /* the big play button only invites the first play; after that, pausing leaves the picture clear
    (play/pause lives in the control bar) */
 .vscreen.fresh .vbig{opacity:1;transform:none}
@@ -765,12 +764,30 @@ body.theater[data-theme=light][data-layout=center] .vframe{transform:rotate(-.5d
    scaling, since the circle does too. */
 .vfrost{position:absolute;left:50%;top:50%;z-index:2;width:calc(64px / var(--vs,1));height:calc(64px / var(--vs,1));transform:translate(-50%,-50%) scale(.6);
   border-radius:50%;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;
-  -webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);background:rgba(255,255,255,.06)}
-.vscreen.paused:not(.fresh) .vfrost{opacity:1;transform:translate(-50%,-50%)}
-body[data-theme=aero] .vfrost{background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.75) 0 7%,rgba(255,255,255,.12) 18%,rgba(255,255,255,0) 36%),radial-gradient(circle,rgba(160,230,255,.05) 55%,rgba(255,255,255,.35) 74%,rgba(150,215,255,.4) 88%,rgba(255,255,255,.75));box-shadow:0 4px 12px rgba(20,60,160,.18)}
-body[data-theme=cyber] .vfrost{background:rgba(6,6,12,.12);box-shadow:inset 0 0 0 1px rgba(138,149,255,.45),0 0 12px rgba(138,149,255,.25)}
-body[data-theme=dark] .vfrost{background:rgba(12,9,6,.14);box-shadow:inset 0 0 0 1px rgba(184,149,90,.55),0 0 14px rgba(220,150,70,.18)}
-body[data-theme=light] .vfrost{background:rgba(251,247,238,.16);box-shadow:inset 0 0 0 1px rgba(251,243,226,.55)}
+  -webkit-backdrop-filter:blur(34px) saturate(1.1) contrast(.8);backdrop-filter:blur(34px) saturate(1.1) contrast(.8);background:rgba(255,255,255,.06)}
+.vscreen.cov:not(.fresh) .vfrost{opacity:1;transform:translate(-50%,-50%);transition:opacity .2s,transform .2s}
+.vfrost{transition:opacity .7s ease,transform .7s ease}
+/* Aero: the cover is one of a little cluster of soap bubbles that bob and drift up around it */
+.vbubs{display:none}
+body[data-theme=aero] .vbubs{display:block;position:absolute;left:50%;top:50%;width:0;height:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .7s ease}
+body[data-theme=aero] .vscreen.cov:not(.fresh) .vbubs{opacity:1;transition:opacity .3s}
+body[data-theme=aero] .vbubs i{position:absolute;left:var(--x);top:var(--y);width:calc(var(--s) / var(--vs,1));height:calc(var(--s) / var(--vs,1));border-radius:50%;
+  background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.95) 0 9%,rgba(255,255,255,.2) 22%,rgba(255,255,255,0) 40%),radial-gradient(circle,rgba(160,230,255,0) 55%,rgba(255,255,255,.45) 72%,rgba(150,215,255,.45) 88%,rgba(255,255,255,.85) 100%);
+  animation:vbub var(--d) ease-in-out var(--dl) infinite}
+body[data-theme=aero] .vbubs i:nth-child(1){--x:calc(-86px / var(--vs,1));--y:calc(-30px / var(--vs,1));--s:18px;--d:4.2s;--dl:-.4s}
+body[data-theme=aero] .vbubs i:nth-child(2){--x:calc(58px / var(--vs,1));--y:calc(-58px / var(--vs,1));--s:12px;--d:5s;--dl:-2.1s}
+body[data-theme=aero] .vbubs i:nth-child(3){--x:calc(70px / var(--vs,1));--y:calc(14px / var(--vs,1));--s:22px;--d:4.6s;--dl:-1.2s}
+body[data-theme=aero] .vbubs i:nth-child(4){--x:calc(-62px / var(--vs,1));--y:calc(34px / var(--vs,1));--s:10px;--d:3.8s;--dl:-2.8s}
+body[data-theme=aero] .vbubs i:nth-child(5){--x:calc(24px / var(--vs,1));--y:calc(48px / var(--vs,1));--s:13px;--d:5.4s;--dl:-.9s}
+body[data-theme=aero] .vbubs i:nth-child(6){--x:calc(-112px / var(--vs,1));--y:calc(-4px / var(--vs,1));--s:8px;--d:4.4s;--dl:-3.3s}
+body[data-theme=aero] .vbubs i:nth-child(7){--x:calc(-30px / var(--vs,1));--y:calc(-70px / var(--vs,1));--s:9px;--d:4.8s;--dl:-1.7s}
+@keyframes vbub{0%{transform:translate(0,8px) scale(.85);opacity:0}18%{opacity:1}50%{transform:translate(3px,-4px) scale(1)}82%{opacity:1}100%{transform:translate(-2px,-16px) scale(1.04);opacity:0}}
+body[data-theme=aero] .vscreen.cov:not(.fresh) .vfrost{animation:vwob 5s ease-in-out infinite}
+@keyframes vwob{0%,100%{transform:translate(-50%,-50%)}30%{transform:translate(calc(-50% + 1.5px),calc(-50% - 2px)) scale(1.02)}65%{transform:translate(calc(-50% - 1.5px),calc(-50% + 1px)) scale(.99)}}
+body[data-theme=aero] .vfrost{width:calc(80px / var(--vs,1));height:calc(80px / var(--vs,1));background:radial-gradient(circle at 50% 55%,rgba(228,242,255,.9) 0,rgba(214,234,255,.82) 26%,rgba(200,226,255,.55) 40%,rgba(200,226,255,0) 58%),radial-gradient(circle at 50% 80%,rgba(170,240,255,.5),rgba(170,240,255,0) 45%),radial-gradient(circle at 32% 26%,rgba(255,255,255,.75) 0 7%,rgba(255,255,255,.12) 18%,rgba(255,255,255,0) 36%),radial-gradient(circle,rgba(160,230,255,.05) 55%,rgba(255,255,255,.35) 74%,rgba(150,215,255,.4) 88%,rgba(255,255,255,.75));box-shadow:0 4px 12px rgba(20,60,160,.18)}
+body[data-theme=cyber] .vfrost{background:radial-gradient(circle,rgba(10,10,20,.88) 0,rgba(10,10,20,.82) 36%,rgba(10,10,20,0) 60%);box-shadow:inset 0 0 0 1px rgba(138,149,255,.45),0 0 12px rgba(138,149,255,.25)}
+body[data-theme=dark] .vfrost{background:radial-gradient(circle,rgba(14,10,7,.9) 0,rgba(14,10,7,.84) 36%,rgba(14,10,7,0) 60%);box-shadow:inset 0 0 0 1px rgba(184,149,90,.55),0 0 14px rgba(220,150,70,.18)}
+body[data-theme=light] .vfrost{background:radial-gradient(circle,rgba(251,247,238,.88) 0,rgba(251,247,238,.8) 36%,rgba(251,247,238,0) 60%);box-shadow:inset 0 0 0 1px rgba(251,243,226,.55)}
 .vqb{flex:none;align-self:center;height:auto;max-height:20px;box-sizing:border-box;font:700 9.5px/1 var(--f-ui);letter-spacing:.04em;padding:3px 5px;border-radius:4px;border:1px solid currentColor;opacity:.75}
 .vqb:empty{display:none}
 .vqb.is-hd{opacity:1}
@@ -809,7 +826,7 @@ body[data-theme=light] .vframe>.vmenu{bottom:84px}
 
 /* Aero: a floating glass pill with gel buttons */
 body[data-theme=aero] .vctl{left:8px;right:8px;bottom:8px;padding:5px 8px;border-radius:14px;color:#17306f;
-  background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(222,238,255,.72) 50%,rgba(205,228,255,.68) 52%,rgba(232,244,255,.78));
+  background:linear-gradient(180deg,rgba(255,255,255,.88),rgba(228,241,255,.74) 45%,rgba(212,232,255,.7) 60%,rgba(232,244,255,.8));
   border:1px solid rgba(255,255,255,.9);box-shadow:0 8px 22px rgba(10,40,120,.3),inset 0 1px 0 #fff;-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4)}
 body[data-theme=aero] .vctl button:hover{background:rgba(255,255,255,.7)}
 body[data-theme=aero] .vplay{position:relative;color:#fff;border-radius:50%!important;width:32px;height:32px!important;
@@ -834,7 +851,7 @@ body[data-theme=aero] .vbig::before{content:"";position:absolute;z-index:2;left:
   background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,.55) 45%,rgba(255,255,255,.08))}
 body[data-theme=aero] .vbig::after{content:"";position:absolute;z-index:0;left:22%;right:22%;bottom:7%;height:26%;border-radius:50%;
   background:radial-gradient(closest-side,rgba(200,255,250,.85),rgba(200,255,250,0))}
-body[data-theme=aero] .vbig svg{position:relative;z-index:1;width:36px;height:36px;margin-left:5px;fill:#fff;filter:drop-shadow(0 2px 2px rgba(0,35,130,.55)) drop-shadow(0 0 6px rgba(160,230,255,.6))}
+body[data-theme=aero] .vbig svg{position:relative;z-index:1;width:36px;height:36px;margin-left:0;fill:#fff;filter:drop-shadow(0 2px 2px rgba(0,35,130,.55)) drop-shadow(0 0 6px rgba(160,230,255,.6))}
 body[data-theme=aero] .vscreen:hover .vbig{transform:scale(1.05)}
 body[data-theme=aero] .vmenu{background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(225,240,255,.9));color:#17306f;box-shadow:0 10px 24px rgba(10,40,120,.3);border:1px solid #fff}
 body[data-theme=aero] .vmenu button.on{color:#1478f0}

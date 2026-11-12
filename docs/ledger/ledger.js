@@ -314,6 +314,11 @@ function wireControls(scr, iframe) {
         scr.classList.toggle('paused', !playing);
         bPlay.innerHTML = playing ? VI.pause : VI.play;
         bPlay.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+        // YouTube shows its own symbol in the middle while paused and for ~4s after playing resumes; keep the
+        // cover over it until then, then let it fade with it
+        clearTimeout(scr._cov);
+        if (e.data === -1 || e.data === 5) scr.classList.remove('cov');
+        else { scr.classList.add('cov'); if (playing) scr._cov = setTimeout(() => scr.classList.remove('cov'), 5000); }
         clearTimeout(scr._settle); scr.classList.remove('settled');
         if (!playing) scr._settle = setTimeout(() => scr.classList.add('settled'), 1100);
         if ((e.data === 2 || e.data === 0) && scr.matches(':hover')) show(); paint();
@@ -346,7 +351,7 @@ function placeVideo(autoplay) {
         allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
         ${v.id ? `<img class="vposter" alt="" src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'">` : ''}
         <div class="vhit" aria-hidden="true"></div>
-        <span class="vbig" aria-hidden="true">${VI.play}</span><span class="vfrost" aria-hidden="true"></span>
+        <span class="vbig" aria-hidden="true">${VI.play}</span><span class="vfrost" aria-hidden="true"></span><span class="vbubs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
         <div class="vctl"><button class="vplay" aria-label="Play">${VI.play}</button>
           <span class="vtime">0:00 / 0:00</span><span class="vqb" title="Quality YouTube is streaming"></span>
           <div class="vprog" role="slider" aria-label="Seek"><i class="vrail"></i><i class="vbuf"></i><i class="vfill"></i><i class="vknob"></i></div>
