@@ -757,9 +757,9 @@ body.theater[data-theme=light][data-layout=center] .vframe{transform:rotate(-.5d
 .vbig{position:absolute;left:50%;top:50%;z-index:2;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;display:grid;place-items:center;pointer-events:none;
   opacity:0;transform:scale(.85);transition:opacity .25s,transform .25s;color:#fff;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .vbig svg{width:30px;height:30px;fill:currentColor;margin-left:3px}
-/* the big play button shows when paused, then steps aside after a moment; moving over the video brings it back */
-.vscreen.paused .vbig{opacity:1;transform:none}
-.vscreen.paused.settled:not(.show):not(.fresh) .vbig{opacity:0;transform:scale(.92);transition:opacity .6s ease,transform .6s ease}
+/* the big play button only invites the first play; after that, pausing leaves the picture clear
+   (play/pause lives in the control bar) */
+.vscreen.fresh .vbig{opacity:1;transform:none}
 .vctl{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;gap:6px;padding:26px 10px 8px;color:#fff;
   opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .22s ease,transform .22s ease;
   background:linear-gradient(180deg,transparent,rgba(0,0,0,.6))}
