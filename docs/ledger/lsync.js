@@ -119,3 +119,14 @@ export function putMain(field, value) {
   write(F.setDoc(mainRef(), { [field]: clone(value) }, { mergeFields: [field] }));
   return true;
 }
+
+// Every recorded day on this account, for the history view: {date: {tasks, wo}}.
+export async function fetchDays() {
+  if (!ready) return null;
+  try {
+    const snap = await F.getDocs(F.collection(db, 'users', user.uid, 'ledgerDays'));
+    const out = {};
+    snap.forEach(d => { out[d.id] = d.data(); });
+    return out;
+  } catch (e) { console.warn('history read failed', e); return null; }
+}

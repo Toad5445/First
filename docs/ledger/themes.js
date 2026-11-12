@@ -15,7 +15,7 @@ const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0C13 8 16
 const MON3 = m => m.slice(0, 3);
 const DOW3 = d => d.slice(0, 3);
 const mmdd = c => `${String(c.now.getMonth() + 1).padStart(2, '0')}.${String(c.date).padStart(2, '0')}`;
-const tabTitle = (c, tasks, wo, st) => c.tab === 'workout' ? wo : c.tab === 'settings' ? st : tasks;
+const tabTitle = (c, tasks, wo, st, hist) => c.tab === 'workout' ? wo : c.tab === 'settings' ? st : c.tab === 'history' ? hist : tasks;
 
 function barcode(seed, n = 38) {
   const r = rng(seed); let x = 0, s = '';
@@ -73,13 +73,13 @@ const aeroClock = () => `<svg viewBox="0 0 100 100" class="ae-clock" aria-hidden
 
 const aero = {
   name: 'Aero', color: '#3f7dff', check: 'gel',
-  tabNames: ['Tasks', 'Workout', '<svg viewBox="0 0 24 24" class="gear" aria-label="Settings"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.7.1-1.3-.1-1.3 2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-2.2-1.3L15.4 2.6h-4l-.4 2.7a8 8 0 0 0-2.2 1.3l-2.5-1-2 3.5L6.4 10.7l-.1 1.3.1 1.3-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 2.2 1.3l.4 2.7h4l.4-2.7a8 8 0 0 0 2.2-1.3l2.5 1 2-3.5Z"/></svg>'],
+  tabNames: ['Tasks', 'Workout', 'History', '<svg viewBox="0 0 24 24" class="gear" aria-label="Settings"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.7.1-1.3-.1-1.3 2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-2.2-1.3L15.4 2.6h-4l-.4 2.7a8 8 0 0 0-2.2 1.3l-2.5-1-2 3.5L6.4 10.7l-.1 1.3.1 1.3-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 2.2 1.3l.4 2.7h4l.4-2.7a8 8 0 0 0 2.2-1.3l2.5 1 2-3.5Z"/></svg>'],
   placeholder: 'Add a task…', addLabel: 'Add', empty: 'Nothing on the list yet. Type above to add your first task.',
   num: i => String(i).padStart(2, '0'),
   count: c => `<b>${c.done}</b> / ${c.total} done`,
   head: c => `<header class="ph">
-      <div class="titlebar"><span class="orbs" aria-hidden="true"><i></i><i></i><i></i></span><span class="tb-title">Ledger</span><span class="tb-path">${tabTitle(c, 'today', 'workout', 'settings')}</span></div>
-      <div class="ph-row"><h2>${tabTitle(c, 'Today', 'Workout', 'Settings')}</h2><div class="d">${c.dow.toLowerCase()}<br>${c.date} ${MON3(c.month).toLowerCase()} ${c.year}</div></div>
+      <div class="titlebar"><span class="orbs" aria-hidden="true"><i></i><i></i><i></i></span><span class="tb-title">Ledger</span><span class="tb-path">${tabTitle(c, 'today', 'workout', 'settings', 'history')}</span></div>
+      <div class="ph-row"><h2>${tabTitle(c, 'Today', 'Workout', 'Settings', 'History')}</h2><div class="d">${c.dow.toLowerCase()}<br>${c.date} ${MON3(c.month).toLowerCase()} ${c.year}</div></div>
     </header>`,
   brand: c => `<div class="ae-brand">
       <svg class="spark s1" viewBox="0 0 24 24"><path d="M12 0C13 8 16 11 24 12 16 13 13 16 12 24 11 16 8 13 0 12 8 11 11 8 12 0Z"/></svg>
@@ -100,13 +100,13 @@ const aero = {
 const chain = () => '<img class="cy-chain" src="art/chain.webp" alt="" decoding="async">';
 const cyber = {
   name: 'Cybercore', color: '#030305', check: 'xbox',
-  tabNames: ['Tasks', 'Workout', 'Settings'],
+  tabNames: ['Tasks', 'Workout', 'Archive', 'Settings'],
   placeholder: 'Add a task', addLabel: 'Enter ↵', addIcon: '<span class="plus" aria-hidden="true">+</span>',
   empty: 'No entries. The day is open.',
   num: (i, d) => d ? 'CLOSED' : String(i).padStart(2, '0'),
   count: c => `${c.done}<small>/${c.total}</small>`,
   head: c => `<header class="ph"><span class="reg" aria-hidden="true"></span>
-      <div class="ph-row"><h2>${tabTitle(c, `${DOW3(c.dow).toUpperCase()} ${mmdd(c)}`, 'WORKOUT', 'SETTINGS')}</h2><span class="stamp">${c.year} · <span data-clock="hms"></span></span></div></header>`,
+      <div class="ph-row"><h2>${tabTitle(c, `${DOW3(c.dow).toUpperCase()} ${mmdd(c)}`, 'WORKOUT', 'SETTINGS', 'ARCHIVE')}</h2><span class="stamp">${c.year} · <span data-clock="hms"></span></span></div></header>`,
   brand: c => `<div class="cy-brand"><div class="word" aria-label="Ledger">LEDGER</div>
       <div class="tag"><span class="pill">TODAY ONLY</span><p>A record of what must be done before the day closes. Write it down. Cross it out. Begin again tomorrow.</p></div></div>`,
   side: c => `<div class="cy-side">
@@ -164,13 +164,13 @@ function darkArt() {
 }
 const dark = {
   name: 'Dark Academia', color: '#060505', check: 'seal',
-  tabNames: ['Tasks', 'Exercises', 'Settings'],
+  tabNames: ['Tasks', 'Exercises', 'Records', 'Settings'],
   placeholder: 'Inscribe a task…', addLabel: 'Add', empty: 'The page is blank. Inscribe the day’s work above.',
   num: i => roman(i),
   count: c => `<span class="tw">${c.total ? `${word(c.done)[0].toUpperCase() + word(c.done).slice(1)} of ${word(c.total)} ${c.done === 1 ? 'is' : 'are'} done.` : 'Nothing yet set down.'}</span><b>${roman(c.done)} · ${roman(c.total)}</b>`,
   head: c => `<header class="ph"><span class="corner tl">${CORNER}</span><span class="corner tr">${CORNER}</span><span class="corner bl">${CORNER}</span><span class="corner br">${CORNER}</span>
-      <div class="over">${tabTitle(c, 'THE LEDGER OF', 'THE EXERCISES OF', 'THE ORDERING OF')}</div>
-      <h2>${tabTitle(c, c.dow, c.dow, 'the Ledger')}</h2>
+      <div class="over">${tabTitle(c, 'THE LEDGER OF', 'THE EXERCISES OF', 'THE ORDERING OF', 'THE RECORDS OF')}</div>
+      <h2>${tabTitle(c, c.dow, c.dow, 'the Ledger', 'Days Past')}</h2>
       <div class="date">the <em>${c.ord}</em> of ${c.month}, ${roman(c.year)}</div>
       <div class="fleuron" aria-hidden="true"><i></i>${STAR}<i></i></div></header>`,
   brand: c => `<div class="dk-brand">${sigil()}<div class="dk-title"><div class="over">LIBER · DIERUM</div><div class="word">Ledger</div><div class="sub">${roman(c.year)}</div></div></div>`,
@@ -219,12 +219,12 @@ function fresco(id, seed, warm) {
 const LEDE = '<div class="lede"><p>Each morning the page is clean. Set down what the day asks of you, plainly and in order, and leave nothing to memory.</p><p>As the hours pass, mark each task as it is done. What remains at nightfall is simply let go, and tomorrow begins anew.</p></div>';
 const light = {
   name: 'Light Academia', color: '#f2ebde', check: 'tick',
-  tabNames: ['Tasks', 'Workout', 'Settings'],
+  tabNames: ['Tasks', 'Workout', 'Records', 'Settings'],
   placeholder: 'Add a task…', addLabel: 'Add', empty: 'A clean page. Begin whenever you are ready.',
   num: i => roman(i),
   count: c => `${word(c.done)} <small>of ${word(c.total)}</small>`,
   head: c => `<header class="ph"><div class="top"><span>FOLIO ${roman(c.now.getMonth() + 1)} · ${roman(c.year)}</span><span>${c.month.toUpperCase()}</span></div>
-      <div class="headrow">${STAR}<h2>${tabTitle(c, `${c.dow}<i>the ${c.ord}</i>`, `${c.dow}<i>exercises</i>`, 'Settings<i>& preferences</i>')}</h2></div>
+      <div class="headrow">${STAR}<h2>${tabTitle(c, `${c.dow}<i>the ${c.ord}</i>`, `${c.dow}<i>exercises</i>`, 'Settings<i>& preferences</i>', 'Records<i>of days past</i>')}</h2></div>
       ${c.tab === 'tasks' ? LEDE : ''}<div class="rule" aria-hidden="true">${STAR}</div></header>`,
   brand: c => `<figure class="fresco">${fresco('lf', 5, false)}<div class="ftitle"><div class="sc">the</div><div class="word">LEDGER</div></div>
       <span class="flank" aria-hidden="true">${STAR}</span><figcaption>Pl. ${roman(c.now.getMonth() + 1)} — <i>Morning, from the eastern window</i></figcaption></figure>`,

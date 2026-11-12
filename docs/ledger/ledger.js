@@ -67,9 +67,12 @@ function load() {
   if (s.restSec) { s.settings.restSec = s.restSec; delete s.restSec; }
   if (!s.workouts) { s.workouts = withIds(DEFAULT_WORKOUTS); s.woSource = 'default'; }
   s.days = s.days || {}; s.dirty = s.dirty || { main: false, days: {} }; s.dirty.days = s.dirty.days || {};
-  // only today matters; keep a couple of days so a late-night tab doesn't lose anything
-  const keep = new Set([today(), ...Object.keys(s.days).sort().slice(-3)]);
-  for (const d of Object.keys(s.days)) if (!keep.has(d)) delete s.days[d];
+  // past days are kept for the history view (two years is plenty); empty ones are dropped
+  const cut = new Date(); cut.setFullYear(cut.getFullYear() - 2); const cutKey = cut.toISOString().slice(0, 10);
+  for (const d of Object.keys(s.days)) {
+    const x = s.days[d];
+    if (d !== today() && (d < cutKey || (!Object.keys(x.tasks || {}).length && !Object.keys(x.wo || {}).length))) delete s.days[d];
+  }
   return s;
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage full */ } }
@@ -127,7 +130,7 @@ const check = (style = checkStyle()) => CHECKS[style] || CHECKS.circle;
 const X_ICON = '<svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
 
 // ---------- view ----------
-const view = { tab: 'tasks', woDay: null, woEdit: false, editing: null };
+const view = { tab: 'tasks', woDay: null, woEdit: false, editing: null, histMonth: null, histDay: null };
 let artKey = '';
 
 function render() {
@@ -145,9 +148,9 @@ function render() {
 
 function renderPanel(c = ctx()) {
   const t = T();
-  const tabs = [['tasks', t.tabNames[0]], ['workout', t.tabNames[1]], ['settings', t.tabNames[2]]];
+  const tabs = [['tasks', t.tabNames[0]], ['workout', t.tabNames[1]], ['history', t.tabNames[2]], ['settings', t.tabNames[3]]];
   $('panel').innerHTML = `${t.head(c)}
-    <div class="pbody" id="pbody">${view.tab === 'tasks' ? tasksHTML(c) : view.tab === 'workout' ? workoutHTML() : settingsHTML(c)}</div>
+    <div class="pbody" id="pbody">${view.tab === 'tasks' ? tasksHTML(c) : view.tab === 'workout' ? workoutHTML() : view.tab === 'history' ? historyHTML() : settingsHTML(c)}</div>
     <footer class="pfoot"><nav class="tabs" role="tablist">${tabs.map(([k, n], i) => `${i ? '<i class="sep" aria-hidden="true"></i>' : ''}<button role="tab" class="${view.tab === k ? 'on' : ''}" data-tab="${k}" aria-selected="${view.tab === k}">${n}</button>`).join('')}</nav>
       <div class="count" aria-label="${c.done} of ${c.total} done">${t.count(c)}</div></footer>`;
   bindPanel();
@@ -349,6 +352,84 @@ function bindWorkout(p) {
   });
 }
 
+// ---------- history ----------
+// A month calendar of past days; pick one to see what was on the list and what got done.
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const dayStats = x => {
+  const tasks = Object.values((x && x.tasks) || {});
+  return { total: tasks.length, done: tasks.filter(t => t.done).length, wo: Object.keys((x && x.wo) || {}).length };
+};
+let histLoaded = false, histLoading = false;
+function loadHistory() {
+  if (histLoaded || histLoading || !Sync.isReady()) return;
+  histLoading = true;
+  Sync.fetchDays().then(all => {
+    histLoading = false; if (!all) return;
+    histLoaded = true;
+    const t = today();
+    for (const [d, x] of Object.entries(all)) if (d !== t) S.days[d] = { tasks: x.tasks || {}, wo: x.wo || {} };
+    save();
+    if (view.tab === 'history') renderPanel();
+  });
+}
+function woNames() {
+  const m = {};
+  for (const k of Object.keys(S.workouts || {})) for (const x of S.workouts[k] || []) m[x.id] = x;
+  return m;
+}
+function historyHTML() {
+  loadHistory();
+  const now = new Date(), t = today();
+  if (!view.histMonth) view.histMonth = [now.getFullYear(), now.getMonth()];
+  const [y, m] = view.histMonth;
+  if (!view.histDay) {
+    // start on the most recent past day that has anything on it
+    const past = Object.keys(S.days).filter(d => d < t && (dayStats(S.days[d]).total || dayStats(S.days[d]).wo)).sort();
+    view.histDay = past.length ? past[past.length - 1] : t;
+    const hd = new Date(view.histDay + 'T12:00'); view.histMonth = [hd.getFullYear(), hd.getMonth()];
+    return historyHTML();
+  }
+  const first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate(), lead = first.getDay();
+  let cells = '', rec = 0, tot = 0, dn = 0;
+  for (let i = 0; i < lead; i++) cells += '<span class="hd blank"></span>';
+  for (let d = 1; d <= days; d++) {
+    const k = keyOf(new Date(y, m, d)), st = dayStats(S.days[k]), fut = k > t, has = st.total || st.wo;
+    if (has && k <= t) { rec++; tot += st.total; dn += st.done; }
+    const p = st.total ? st.done / st.total : st.wo ? 1 : 0;
+    cells += `<button class="hd ${has ? 'has' : ''} ${k === t ? 'today' : ''} ${k === view.histDay ? 'sel' : ''} ${p === 1 && st.total ? 'full' : ''}" data-hday="${k}" ${fut ? 'disabled' : ''}
+      aria-label="${d} ${MONTHS[m]}${st.total ? `, ${st.done} of ${st.total} done` : ''}"><span class="n">${d}</span><i class="hbar"><b style="width:${(p * 100).toFixed(0)}%"></b></i></button>`;
+  }
+  const canNext = new Date(y, m + 1, 1) <= now;
+  // the chosen day
+  const sel = S.days[view.histDay], st = dayStats(sel), sd = new Date(view.histDay + 'T12:00');
+  const list = Object.entries((sel && sel.tasks) || {}).map(([id, x]) => Object.assign({ id }, x)).sort((a, b) => (a.at || 0) - (b.at || 0));
+  const names = woNames();
+  const wo = Object.entries((sel && sel.wo) || {}).map(([id, n]) => {
+    const x = names[id]; if (!x) return null;
+    const total = x.moves ? (x.rounds || 1) : (x.sets || 1);
+    return `<div class="task hist wo ${n >= total ? 'done' : ''}"><span class="ck" aria-hidden="true">${check()}</span><span class="t">${esc(x.name)}</span><span class="meta">${Math.min(n, total)} / ${total} ${x.moves ? 'rounds' : 'sets'}</span></div>`;
+  }).filter(Boolean).join('');
+  const isToday = view.histDay === t;
+  const detail = `<div class="hhead"><h3>${DAYS[sd.getDay()]}, ${sd.getDate()} ${MONTHS[sd.getMonth()]}${isToday ? ' <em>· today</em>' : ''}</h3>
+      <span class="hcount">${st.total ? `${st.done} of ${st.total} done` : ''}</span></div>
+    ${list.length ? `<div class="list">${list.map((x, i) => `<div class="task hist ${x.done ? 'done' : ''}"><span class="ck" aria-hidden="true">${check()}</span><span class="t">${esc(x.t)}</span><span class="meta">${T().num(i + 1, x.done)}</span></div>`).join('')}</div>`
+      : `<div class="empty">${isToday ? 'Nothing on today’s list yet.' : 'Nothing was recorded this day.'}</div>`}
+    ${wo ? `<div class="hsub">Workout</div><div class="list">${wo}</div>` : ''}`;
+  return `<div class="history">
+    <div class="hmonth"><button class="hnav" data-hnav="-1" aria-label="Previous month">‹</button><h3>${MONTHS[m]} <span>${y}</span></h3>
+      <button class="hnav" data-hnav="1" aria-label="Next month" ${canNext ? '' : 'disabled'}>›</button></div>
+    <div class="cal"><span class="dow">S</span><span class="dow">M</span><span class="dow">T</span><span class="dow">W</span><span class="dow">T</span><span class="dow">F</span><span class="dow">S</span>${cells}</div>
+    <p class="hsum">${rec ? `${rec} day${rec === 1 ? '' : 's'} recorded${tot ? ` · ${Math.round(dn / tot * 100)}% of tasks done` : ''}` : 'No days recorded this month.'}${!Sync.getUser() ? ' · Sign in to see days from your other devices.' : histLoading ? ' · Loading…' : ''}</p>
+    <div class="hday">${detail}</div></div>`;
+}
+function bindHistory(p) {
+  p.querySelectorAll('[data-hnav]').forEach(b => b.onclick = () => {
+    const [y, m] = view.histMonth, d = new Date(y, m + +b.dataset.hnav, 1);
+    view.histMonth = [d.getFullYear(), d.getMonth()]; renderPanel();
+  });
+  p.querySelectorAll('[data-hday]').forEach(b => b.onclick = () => { view.histDay = b.dataset.hday; renderPanel(); });
+}
+
 // ---------- settings ----------
 const LAYOUTS = [['left', 'Left'], ['center', 'Center'], ['right', 'Right']];
 const CK_OPTS = [['theme', 'Theme'], ['circle', 'Circle'], ['square', 'Square'], ['star', 'Star']];
@@ -410,6 +491,7 @@ function bindPanel() {
   const p = $('panel');
   p.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { view.tab = b.dataset.tab; view.woEdit = false; document.body.dataset.tab = view.tab; renderPanel(); });
   if (view.tab === 'workout') return bindWorkout(p);
+  if (view.tab === 'history') return bindHistory(p);
   if (view.tab === 'settings') return bindSettings(p);
   const form = $('addform'), inp = $('addin');
   form.onsubmit = e => {
