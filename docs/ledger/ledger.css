@@ -809,6 +809,14 @@ body[data-theme=light] .vfrost{background:radial-gradient(circle,rgb(244,238,226
 .vknob{width:12px;height:12px!important;margin:-6px 0 0 -6px!important;border-radius:50%;background:#fff;transform:scale(0);transition:transform .15s}
 .vprog:hover .vknob,.vprog.drag .vknob{transform:scale(1)}
 .vprog:hover .vrail,.vprog:hover .vbuf,.vprog:hover .vfill{height:6px;margin-top:-3px}
+.vprog .vtip{position:absolute;left:0;bottom:calc(100% + 6px);top:auto;height:auto;margin:0;transform:translateX(-50%) translateY(4px);padding:4px 7px;border-radius:6px;
+  font:600 11px/1 var(--f-ui);font-variant-numeric:tabular-nums;white-space:nowrap;color:#fff;background:rgba(10,12,20,.88);box-shadow:0 3px 10px rgba(0,0,0,.3);
+  opacity:0;transition:opacity .15s,transform .15s;pointer-events:none}
+.vprog.tipping .vtip{opacity:1;transform:translateX(-50%)}
+body[data-theme=aero] .vprog .vtip{color:#17306f;background:linear-gradient(180deg,#fff,#e1eeff);border:1px solid #fff;box-shadow:0 4px 12px rgba(10,40,120,.3);font-family:'Nunito Sans';font-weight:700}
+body[data-theme=cyber] .vprog .vtip{border-radius:0;background:rgba(3,3,6,.95);border:1px solid rgba(138,149,255,.5);font:400 10.5px 'JetBrains Mono';color:#d9dbe6;box-shadow:0 0 10px rgba(138,149,255,.3)}
+body[data-theme=dark] .vprog .vtip{border-radius:0;background:rgba(10,8,6,.95);border:1px solid rgba(184,149,90,.5);font:italic 500 14px 'Cormorant Garamond';color:#e3cf9f}
+body[data-theme=light] .vprog .vtip{border-radius:2px;background:#fbf7ee;color:#3b2f24;font:italic 400 14px 'EB Garamond';box-shadow:0 4px 12px rgba(60,40,15,.3)}
 .vmenu{position:absolute;right:8px;bottom:46px;display:flex;flex-direction:column;padding:6px;border-radius:10px;background:rgba(15,15,20,.95);min-width:170px;max-height:calc(100% - 56px);overflow:auto}
 .vframe>.vmenu{z-index:10;max-height:none;bottom:58px;right:18px}
 body[data-theme=light] .vframe>.vmenu{bottom:84px}

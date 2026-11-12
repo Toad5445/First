@@ -294,8 +294,19 @@ function wireControls(scr, iframe) {
     if (!yt || !yt.getDuration) return; dragging = true; prog.classList.add('drag'); prog.setPointerCapture(e.pointerId);
     const f = seekAt(e.clientX); fill.style.width = knob.style.left = f * 100 + '%';
   });
+  // hovering the timeline shows the time at that spot
+  const tip = prog.querySelector('.vtip');
+  const tipAt = x => {
+    if (!yt || !yt.getDuration || !yt.getDuration()) return;
+    const f = seekAt(x), w = prog.clientWidth, half = (tip.offsetWidth || 40) / 2;
+    tip.textContent = tfmt(f * yt.getDuration());
+    tip.style.left = Math.min(w - half, Math.max(half, f * w)) + 'px';
+    prog.classList.add('tipping');
+  };
+  prog.addEventListener('pointermove', e => tipAt(e.clientX));
+  prog.addEventListener('pointerleave', () => { if (!dragging) prog.classList.remove('tipping'); });
   prog.addEventListener('pointermove', e => { if (!dragging) return; const f = seekAt(e.clientX); fill.style.width = knob.style.left = f * 100 + '%'; time.textContent = `${tfmt(f * yt.getDuration())} / ${tfmt(yt.getDuration())}`; });
-  prog.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; prog.classList.remove('drag'); yt.seekTo(seekAt(e.clientX) * yt.getDuration(), true); show(); });
+  prog.addEventListener('pointerup', e => { if (!dragging) return; dragging = false; prog.classList.remove('drag'); if (!prog.matches(':hover')) prog.classList.remove('tipping'); yt.seekTo(seekAt(e.clientX) * yt.getDuration(), true); show(); });
   function paint() {
     if (!yt || !yt.getDuration) return;
     const d = yt.getDuration() || 0, t = yt.getCurrentTime() || 0;
@@ -358,7 +369,7 @@ function placeVideo(autoplay) {
         <span class="vbig" aria-hidden="true">${VI.play}</span><span class="vfrost" aria-hidden="true"></span><span class="vbubs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
         <div class="vctl"><button class="vplay" aria-label="Play">${VI.play}</button>
           <span class="vtime">0:00 / 0:00</span><span class="vqb" title="Quality YouTube is streaming"></span>
-          <div class="vprog" role="slider" aria-label="Seek"><i class="vrail"></i><i class="vbuf"></i><i class="vfill"></i><i class="vknob"></i></div>
+          <div class="vprog" role="slider" aria-label="Seek"><i class="vrail"></i><i class="vbuf"></i><i class="vfill"></i><i class="vknob"></i><span class="vtip" aria-hidden="true"></span></div>
           <button class="vmute" aria-label="Mute">${VI.vol}</button>
           <button class="vrate" aria-label="Settings: quality and speed"><svg viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.7.1-1.3-.1-1.3 2.1-1.6-2-3.5-2.5 1a8 8 0 0 0-2.2-1.3L15.4 2.6h-4l-.4 2.7a8 8 0 0 0-2.2 1.3l-2.5-1-2 3.5L6.4 10.7l-.1 1.3.1 1.3-2.1 1.6 2 3.5 2.5-1a8 8 0 0 0 2.2 1.3l.4 2.7h4l.4-2.7a8 8 0 0 0 2.2-1.3l2.5 1 2-3.5Z"/></svg></button>
           <button class="vfull" aria-label="Full screen">${VI.full}</button>
